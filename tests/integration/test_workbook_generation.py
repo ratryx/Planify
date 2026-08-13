@@ -252,6 +252,33 @@ def test_sample_mode_tables(tmp_path):
 
     # Sample mode verification: check if Nubank is present
     assert contas_ws["B5"].value == "Nubank"
+    assert contas_ws["C5"].value == "Conta corrente"
+    assert contas_ws["D5"].value == "Nubank"
+    assert contas_ws["E5"].value == 5200.0
+
+    saldo_atual_cell = contas_ws["F5"]
+    assert str(saldo_atual_cell.value).startswith("=")
+    assert saldo_atual_cell.data_type == "f"
+
+    assert contas_ws["G5"].value == "Sim"
+    assert contas_ws["H5"].value == "Sim"
+
+    status_cell = contas_ws["I5"]
+    assert str(status_cell.value).startswith("=")
+    assert status_cell.data_type == "f"
+
+    # Verify Reserva row
+    assert contas_ws["B6"].value == "Reserva"
+    assert contas_ws["C6"].value == "Poupança"
+    assert contas_ws["D6"].value == "Itaú"
+    assert contas_ws["E6"].value == 18000.0
+    assert str(contas_ws["F6"].value).startswith("=")
+    assert contas_ws["F6"].data_type == "f"
+    assert contas_ws["G6"].value == "Não"
+    assert contas_ws["H6"].value == "Sim"
+    assert str(contas_ws["I6"].value).startswith("=")
+    assert contas_ws["I6"].data_type == "f"
+
     assert cartoes_ws["B7"].value == "Nubank"
     # Conta de pagamento for the Nubank card is "Nubank"
     assert cartoes_ws["F7"].value == "Nubank"
