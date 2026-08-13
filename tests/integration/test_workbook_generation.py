@@ -431,6 +431,8 @@ def test_sample_mode_tables(tmp_path):
     assert cartoes_ws["H7"].data_type == "f"
     assert str(cartoes_ws["I7"].value).startswith("=")
     assert cartoes_ws["I7"].data_type == "f"
+    assert str(cartoes_ws["J7"].value).startswith("=")
+    assert cartoes_ws["J7"].data_type == "f"
 
     # Verify Inter Black card
     assert cartoes_ws["B8"].value == "Inter Black"
