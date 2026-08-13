@@ -8,12 +8,13 @@ def build_comece_aqui(request: GenerationRequest) -> WorksheetPlan:
         CellPlan(row=1, col=1, value="Bem-vindo ao Financeiro Pessoal", role=CellRole.TITLE, size=16, bold=True),
         CellPlan(row=3, col=1, value=f"Ano Base: {request.year}", role=CellRole.NORMAL, bold=True),
         CellPlan(row=5, col=1, value="Instruções Iniciais:", role=CellRole.HEADER, bold=True),
-        CellPlan(row=6, col=1, value="1. Configure suas categorias e contas na aba 'Configurações'."),
-        CellPlan(row=7, col=1, value="2. Registre suas movimentações na aba 'Lançamentos'."),
-        CellPlan(row=8, col=1, value="3. Acompanhe seus resultados na aba 'Dashboard'."),
-        CellPlan(row=10, col=1, value="Convenções Visuais:"),
-        CellPlan(row=11, col=1, value="Células editáveis (Input)", role=CellRole.INPUT),
-        CellPlan(row=12, col=1, value="Células automáticas (Fórmulas/Sistema) - Não edite", role=CellRole.FORMULA),
+        CellPlan(row=6, col=1, value="1. Cadastre suas contas na aba 'Contas'."),
+        CellPlan(row=7, col=1, value="2. Cadastre seus cartões na aba 'Cartões'."),
+        CellPlan(row=8, col=1, value="3. Configure categorias na aba 'Configurações'."),
+        CellPlan(row=9, col=1, value="4. Registre lançamentos na aba 'Lançamentos'."),
+        CellPlan(row=11, col=1, value="Convenções Visuais:"),
+        CellPlan(row=12, col=1, value="Células editáveis (Input)", role=CellRole.INPUT),
+        CellPlan(row=13, col=1, value="Células automáticas (Fórmulas/Sistema) - Não edite", role=CellRole.FORMULA),
     ]
     
     return WorksheetPlan(
@@ -33,7 +34,7 @@ def build_dashboard(request: GenerationRequest) -> WorksheetPlan:
     
     cells = [
         CellPlan(row=1, col=1, value="Dashboard Principal", role=CellRole.TITLE, size=16, bold=True),
-        CellPlan(row=3, col=1, value="Saldo Disponível Hoje", role=CellRole.HEADER),
+        CellPlan(row=3, col=1, value="Resultado Registrado", role=CellRole.HEADER),
         CellPlan(row=4, col=1, formula=subtract(sumifs(val_ref, tipo_ref, literal('Receita')), sumifs(val_ref, tipo_ref, literal('Despesa'))), role=CellRole.FORMULA, number_format="R$ #,##0.00", size=14, bold=True),
         CellPlan(row=3, col=3, value="Receitas do Mês", role=CellRole.HEADER),
         CellPlan(row=4, col=3, formula=sumifs(val_ref, tipo_ref, literal('Receita')), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
@@ -111,18 +112,13 @@ def build_configuracoes(request: GenerationRequest) -> WorksheetPlan:
         data=default_categories
     )
     
-    tbl_contas = TablePlan(
-        name="tblContas",
-        start_cell="D6",
-        columns=[ColumnPlan(header="Conta")],
-        data=[["Conta Corrente"], ["Poupança"], ["Carteira"]]
-    )
+    from .defaults import DEFAULT_ACCOUNT_TYPES
     
-    tbl_cartoes = TablePlan(
-        name="tblCartoes",
-        start_cell="F6",
-        columns=[ColumnPlan(header="Cartão")],
-        data=[["Cartão Principal"]]
+    tbl_tipos_conta = TablePlan(
+        name="tblTiposConta",
+        start_cell="D6",
+        columns=[ColumnPlan(header="Tipo")],
+        data=DEFAULT_ACCOUNT_TYPES
     )
         
     return WorksheetPlan(
@@ -130,6 +126,6 @@ def build_configuracoes(request: GenerationRequest) -> WorksheetPlan:
         is_protected=False, # Intentionally unprotected for Table expansion
         show_gridlines=False,
         cells=cells,
-        tables=[tbl_categorias, tbl_contas, tbl_cartoes],
-        column_widths={1: 25, 2: 5, 3: 20, 4: 5, 5: 20}
+        tables=[tbl_categorias, tbl_tipos_conta],
+        column_widths={1: 25, 2: 5, 3: 20}
     )

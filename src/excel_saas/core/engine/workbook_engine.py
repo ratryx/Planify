@@ -195,16 +195,28 @@ class WorkbookEngine:
                     self._apply_data_validation(worksheet, start_row + 1, c_idx, end_row, c_idx, col.validation)
 
     def _apply_data_validation(self, worksheet, first_row, first_col, last_row, last_col, validation: DataValidationPlan):
-        source = validation.source
-        if hasattr(source, '__str__') and not isinstance(source, list):
-            source = str(source)
-
         options = {
             'validate': validation.validate,
-            'source': source,
             'input_title': validation.input_title,
             'input_message': validation.input_message,
             'error_title': validation.error_title,
-            'error_message': validation.error_message
+            'error_message': validation.error_message,
+            'ignore_blank': validation.ignore_blank
         }
+
+        if validation.source is not None:
+            source = validation.source
+            if hasattr(source, '__str__') and not isinstance(source, list):
+                source = str(source)
+            options['source'] = source
+
+        if validation.criteria is not None:
+            options['criteria'] = validation.criteria
+
+        if validation.minimum is not None:
+            options['minimum'] = validation.minimum
+
+        if validation.maximum is not None:
+            options['maximum'] = validation.maximum
+
         worksheet.data_validation(first_row, first_col, last_row, last_col, options)

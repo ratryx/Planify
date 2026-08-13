@@ -6,11 +6,15 @@ from excel_saas.core.excel.formulas import Formula, Expression
 @dataclass
 class DataValidationPlan:
     validate: str  # 'list', 'integer', 'decimal', etc.
-    source: Union[List[str], str, Any]  # can be a list of options, formula string, or Formula object
+    source: Union[List[str], str, Any] = None  # Optional now, since numeric uses criteria/min/max
+    criteria: Optional[str] = None  # e.g., '>=', 'between'
+    minimum: Optional[Any] = None
+    maximum: Optional[Any] = None
+    ignore_blank: bool = True
     input_title: str = ""
     input_message: str = ""
     error_title: str = "Valor Inválido"
-    error_message: str = "Por favor, selecione um valor válido da lista."
+    error_message: str = "Por favor, insira um valor válido."
 
 @dataclass
 class ColumnPlan:
