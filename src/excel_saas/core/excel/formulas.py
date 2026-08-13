@@ -181,3 +181,17 @@ def min_func(*args) -> Expression:
 
 def round_func(number, digits) -> Expression:
     return func("ROUND", number, digits)
+
+def index_func(array, row_num) -> Expression:
+    return func("INDEX", array, row_num)
+
+def aggregate_func(function_num, options, array, k) -> Expression:
+    return func("AGGREGATE", function_num, options, array, k)
+
+def row_func(reference=None) -> Expression:
+    if reference is None:
+        return func("ROW")
+    return func("ROW", reference)
+
+def iferror_func(value, fallback) -> Expression:
+    return func("IFERROR", value, fallback)

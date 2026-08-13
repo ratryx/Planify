@@ -22,6 +22,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Contas",
         "Cartões",
         "Faturas",
+        "Parcelamentos",
         "Configurações"
     ]
 
@@ -160,6 +161,58 @@ def test_full_pipeline_light_and_dark(tmp_path):
     for col in ["F", "G", "H", "I", "J"]:
         fmt = faturas_ws[f"{col}5"].number_format
         assert "R$" in fmt or "General" not in fmt # Just ensuring it's formatting
+
+    # Phase 5D: Check Parcelamentos table
+    parcelamentos_ws = wb["Parcelamentos"]
+    assert "tblParcelamentos" in parcelamentos_ws.tables
+    
+    table_p = parcelamentos_ws.tables["tblParcelamentos"]
+    assert table_p.ref == "B4:O104"
+    
+    parcelamentos_headers = [cell.value for cell in parcelamentos_ws[4] if cell.value]
+    assert parcelamentos_headers == [
+        "Descrição", "Cartão", "Valor original", "Parcelas",
+        "Valor da parcela", "Primeira fatura", "Última fatura",
+        "Parcelas restantes", "Próxima competência",
+        "Compromisso restante", "Situação",
+        "sys_Ordem", "sys_IndiceLancamento", "sys_AjusteUltimaParcela"
+    ]
+    
+    for col in ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "N", "O"]:
+        cell = parcelamentos_ws[f"{col}5"]
+        assert str(cell.value).startswith("=")
+        assert cell.data_type == "f"
+    
+    assert parcelamentos_ws["M5"].value == 1
+    
+    for col in ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "N", "O"]:
+        cell = parcelamentos_ws[f"{col}104"]
+        assert str(cell.value).startswith("=")
+        assert cell.data_type == "f"
+        
+    assert parcelamentos_ws["M104"].value == 100
+    
+    target_hidden_cols = {column_index_from_string("M"), column_index_from_string("N"), column_index_from_string("O")}
+    covered_hidden_p = set()
+    for col_dim in parcelamentos_ws.column_dimensions.values():
+        if getattr(col_dim, "hidden", False):
+            d_min = getattr(col_dim, "min", None)
+            d_max = getattr(col_dim, "max", None)
+            if d_min and d_max:
+                for idx in range(d_min, d_max + 1):
+                    covered_hidden_p.add(idx)
+    
+    for col_idx in target_hidden_cols:
+        assert col_idx in covered_hidden_p
+        
+    assert "R$" in parcelamentos_ws["D5"].number_format
+    assert "R$" in parcelamentos_ws["F5"].number_format
+    assert "mmm/yyyy" in parcelamentos_ws["G5"].number_format or parcelamentos_ws["G5"].number_format == "General"
+    assert "mmm/yyyy" in parcelamentos_ws["H5"].number_format or parcelamentos_ws["H5"].number_format == "General"
+    assert "mmm/yyyy" in parcelamentos_ws["J5"].number_format or parcelamentos_ws["J5"].number_format == "General"
+    assert "R$" in parcelamentos_ws["K5"].number_format
+    
+    assert parcelamentos_ws.protection.sheet is True
 
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
@@ -330,6 +383,12 @@ def test_full_pipeline_light_and_dark(tmp_path):
     
     table_f_dark = ws_faturas_dark.tables["tblFaturas"]
     assert table_f_dark.ref == "B4:M5" 
+
+    # Phase 5D: Dark structural regression check for Parcelamentos
+    assert "Parcelamentos" in wb_dark.sheetnames
+    ws_parcelamentos_dark = wb_dark["Parcelamentos"]
+    assert "tblParcelamentos" in ws_parcelamentos_dark.tables
+    assert ws_parcelamentos_dark.tables["tblParcelamentos"].ref == "B4:O104"
 
 def test_literal_string_starts_with_equal(tmp_path):
     from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan

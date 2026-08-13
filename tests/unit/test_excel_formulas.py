@@ -59,3 +59,12 @@ def test_formula_nesting():
     )
     assert str(expr) == 'SUMIFS(tbl[Valor],tbl[Tipo],"Receita")-SUMIFS(tbl[Valor],tbl[Tipo],"Despesa")'
     assert str(Formula(expr)) == '=SUMIFS(tbl[Valor],tbl[Tipo],"Receita")-SUMIFS(tbl[Valor],tbl[Tipo],"Despesa")'
+
+def test_ast_new_functions():
+    from excel_saas.core.excel.formulas import index_func, aggregate_func, row_func, iferror_func
+    
+    assert str(index_func(literal("A1:A10"), literal(5))) == 'INDEX("A1:A10",5)'
+    assert str(aggregate_func(literal(15), literal(6), literal("array"), literal(1))) == 'AGGREGATE(15,6,"array",1)'
+    assert str(row_func(literal("A1"))) == 'ROW("A1")'
+    assert str(row_func()) == 'ROW()'
+    assert str(iferror_func(literal("value"), literal("fallback"))) == 'IFERROR("value","fallback")'
