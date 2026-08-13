@@ -23,6 +23,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Cartões",
         "Faturas",
         "Parcelamentos",
+        "Orçamento",
         "Configurações"
     ]
 
@@ -214,6 +215,80 @@ def test_full_pipeline_light_and_dark(tmp_path):
     
     assert parcelamentos_ws.protection.sheet is True
 
+    # Phase 6: Check Orçamento table
+    orcamento_ws = wb["Orçamento"]
+    assert "tblOrcamento" in orcamento_ws.tables
+    
+    table_orc = orcamento_ws.tables["tblOrcamento"]
+    assert table_orc.ref == "B4:L5"
+    
+    orcamento_headers = [cell.value for cell in orcamento_ws[4] if cell.value]
+    assert orcamento_headers == [
+        "Competência", "Categoria", "Orçamento", "Saídas em conta", "Cartão / Parcelas",
+        "Consumido / Comprometido", "Disponível", "Uso %", "Status", "Situação", "sys_CompetenciaNormalizada"
+    ]
+    
+    for col in ["E", "F", "G", "H", "I", "J", "K", "L"]:
+        cell = orcamento_ws[f"{col}5"]
+        assert str(cell.value).startswith("=")
+        assert cell.data_type == "f"
+    
+    # Validations
+    comp_val = None
+    cat_val = None
+    orc_val = None
+    for val in orcamento_ws.data_validations.dataValidation:
+        sqref = val.sqref.__str__()
+        if "B" in sqref:
+            comp_val = val
+        elif "C" in sqref:
+            cat_val = val
+        elif "D" in sqref:
+            orc_val = val
+
+    assert comp_val is not None
+    assert comp_val.type == "date"
+    assert comp_val.operator in (None, "between")
+    assert "1" in comp_val.formula1
+    assert "2958465" in comp_val.formula2
+    assert comp_val.allowBlank is True
+    
+    assert cat_val is not None
+    assert cat_val.type == "list"
+    assert "lista_categorias" in cat_val.formula1
+    assert cat_val.allowBlank is True
+    
+    assert orc_val is not None
+    assert orc_val.type == "decimal"
+    assert orc_val.operator == "greaterThanOrEqual"
+    assert "0" in orc_val.formula1
+    assert orc_val.allowBlank is True
+    
+    # Hidden system column L
+    from openpyxl.utils import column_index_from_string
+    col_l_idx = column_index_from_string("L")
+    covered_hidden_orc = False
+    for col_dim in orcamento_ws.column_dimensions.values():
+        if getattr(col_dim, "hidden", False):
+            d_min = getattr(col_dim, "min", None)
+            d_max = getattr(col_dim, "max", None)
+            if d_min and d_max and d_min <= col_l_idx <= d_max:
+                covered_hidden_orc = True
+                break
+    assert covered_hidden_orc, "Column L in Orçamento is not physically hidden"
+    
+    # Formats
+    assert "mmm/yyyy" in orcamento_ws["B5"].number_format or orcamento_ws["B5"].number_format == "General"
+    assert "R$" in orcamento_ws["D5"].number_format or orcamento_ws["D5"].number_format == "General"
+    assert "R$" in orcamento_ws["E5"].number_format or orcamento_ws["E5"].number_format == "General"
+    assert "R$" in orcamento_ws["F5"].number_format or orcamento_ws["F5"].number_format == "General"
+    assert "R$" in orcamento_ws["G5"].number_format or orcamento_ws["G5"].number_format == "General"
+    assert "R$" in orcamento_ws["H5"].number_format or orcamento_ws["H5"].number_format == "General"
+    assert "0.0%" in orcamento_ws["I5"].number_format or orcamento_ws["I5"].number_format == "General"
+    
+    # Protection
+    assert orcamento_ws.protection.sheet is False
+
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
     assert "tblTiposConta" in config_ws.tables
@@ -389,6 +464,12 @@ def test_full_pipeline_light_and_dark(tmp_path):
     ws_parcelamentos_dark = wb_dark["Parcelamentos"]
     assert "tblParcelamentos" in ws_parcelamentos_dark.tables
     assert ws_parcelamentos_dark.tables["tblParcelamentos"].ref == "B4:O104"
+
+    # Phase 6: Dark structural regression check for Orçamento
+    assert "Orçamento" in wb_dark.sheetnames
+    ws_orcamento_dark = wb_dark["Orçamento"]
+    assert "tblOrcamento" in ws_orcamento_dark.tables
+    assert ws_orcamento_dark.tables["tblOrcamento"].ref == "B4:L5"
 
 def test_literal_string_starts_with_equal(tmp_path):
     from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan
