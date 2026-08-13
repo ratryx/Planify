@@ -8,8 +8,8 @@ def test_saldo_atual_formula_structure():
     expr = build_saldo_atual_formula()
     f_str = str(expr)
     
-    # Needs to handle blank rows cleanly
-    assert "ISBLANK([@Nome])" in f_str
+    # Needs to handle blank rows cleanly and enforce safety
+    assert "AND(NOT(ISBLANK([@Nome])),OR(ISBLANK([@[Saldo inicial]]),ISNUMBER([@[Saldo inicial]])))" in f_str
     
     # Needs to use SUM with multiple arguments rather than a + b
     assert "SUM([@[Saldo inicial]]" in f_str
@@ -31,6 +31,10 @@ def test_status_formula_structure():
     # Needs to flag duplicates
     assert "COUNTIFS(tblContas[Nome],[@Nome])>1" in f_str
     assert "Nome duplicado" in f_str
+
+    # Needs to flag invalid numeric balances
+    assert "ISNUMBER([@[Saldo inicial]])" in f_str
+    assert "Saldo inicial inválido" in f_str
 
 def test_dashboard_saldo_disponivel_structure():
     """Verify Dashboard correctly aggregates liquidity based on Ativa, Include, and Status."""

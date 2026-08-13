@@ -8,6 +8,7 @@ from excel_saas.core.excel.formulas import sum_func, if_func, isblank, literal, 
 from excel_saas.core.excel.references import ThisRowRef, TableRef
 
 def build_saldo_atual_formula() -> Expression:
+    from excel_saas.core.excel.formulas import and_func, or_func, not_func, isnumber
     nome = ThisRowRef("Nome")
     saldo_inicial = ThisRowRef("Saldo inicial")
     sys_caixa_conta = TableRef("tblLancamentos", "sys_CaixaConta")
@@ -15,15 +16,20 @@ def build_saldo_atual_formula() -> Expression:
     lanc_conta = TableRef("tblLancamentos", "Conta")
     lanc_conta_destino = TableRef("tblLancamentos", "Conta destino")
 
+    is_safe = and_func(
+        not_func(isblank(nome)),
+        or_func(isblank(saldo_inicial), isnumber(saldo_inicial))
+    )
+
     calc = sum_func(
         saldo_inicial,
         sumifs(sys_caixa_conta, lanc_conta, nome),
         sumifs(sys_caixa_destino, lanc_conta_destino, nome)
     )
-    return if_func(isblank(nome), literal(""), calc)
+    return if_func(is_safe, calc, literal(""))
 
 def build_status_formula() -> Expression:
-    from excel_saas.core.excel.formulas import and_func
+    from excel_saas.core.excel.formulas import and_func, isnumber, not_func
 
     nome = ThisRowRef("Nome")
     tipo = ThisRowRef("Tipo")
@@ -42,7 +48,18 @@ def build_status_formula() -> Expression:
     )
 
     tbl_nome_col = TableRef("tblContas", "Nome")
-    check_dupe = if_func(greater_than(countifs(tbl_nome_col, nome), literal(1)), literal("Nome duplicado"), literal("OK"))
+
+    check_saldo = if_func(
+        and_func(not_func(isblank(saldo_ini)), not_func(isnumber(saldo_ini))),
+        literal("Saldo inicial inválido"),
+        literal("OK")
+    )
+
+    check_dupe = if_func(
+        greater_than(countifs(tbl_nome_col, nome), literal(1)),
+        literal("Nome duplicado"),
+        check_saldo
+    )
 
     return if_func(
         is_empty_row,
