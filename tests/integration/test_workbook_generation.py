@@ -47,43 +47,6 @@ def test_full_pipeline_light_and_dark(tmp_path):
 
     comp_fatura_cell = ws["I5"]
     assert "mmm/yyyy" in comp_fatura_cell.number_format or comp_fatura_cell.number_format == "General"
-
-    # Verify Phase 5B formula cells and data_type
-    phase5b_formula_cells = {
-        "Y5": "sys_ParcelasEfetivas",
-        "Z5": "sys_FaturaInicial",
-        "AA5": "sys_FaturaFinal",
-        "AB5": "sys_ValorParcelaBase",
-        "AC5": "sys_ValorUltimaParcela",
-        "AD5": "sys_AjusteUltimaParcela",
-        "AE5": "sys_CreditoFatura",
-        "AF5": "sys_PagamentoFatura"
-    }
-
-    for cell_ref, col_name in phase5b_formula_cells.items():
-        cell = ws[cell_ref]
-        assert str(cell.value).startswith("="), f"{col_name} at {cell_ref} must be a formula"
-        assert cell.data_type == "f", f"{col_name} at {cell_ref} must have data_type 'f'"
-
-    # Verify physical hidden state for columns Y through AF (indices 25 to 32, assuming A=1)
-    from openpyxl.utils import column_index_from_string
-    hidden_indices = {column_index_from_string(col) for col in ["Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF"]}
-
-    covered_hidden = set()
-    for col_dim in ws.column_dimensions.values():
-        if getattr(col_dim, "hidden", False):
-            # min and max are column indices
-            dim_min = getattr(col_dim, "min", None)
-            dim_max = getattr(col_dim, "max", None)
-            if dim_min and dim_max:
-                for idx in range(dim_min, dim_max + 1):
-                    covered_hidden.add(idx)
-
-    # Assert all target Phase 5B columns are covered by hidden dimensions
-    for col_idx in hidden_indices:
-        assert col_idx in covered_hidden, f"Column index {col_idx} is not hidden in the generated xlsx."
-
-
     # Verify Phase 5B formula cells and data_type
     phase5b_formula_cells = {
         "Y5": "sys_ParcelasEfetivas",
