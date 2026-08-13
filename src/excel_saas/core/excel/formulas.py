@@ -142,3 +142,24 @@ def literal(value: Any) -> Expression:
         def __str__(self):
             return _val(value)
     return LiteralExpr()
+
+def date_func(year, month, day) -> Expression:
+    return func("DATE", year, month, day)
+
+def year_func(date) -> Expression:
+    return func("YEAR", date)
+
+def month_func(date) -> Expression:
+    return func("MONTH", date)
+
+def day_func(date) -> Expression:
+    return func("DAY", date)
+
+def edate(start_date, months) -> Expression:
+    return func("EDATE", start_date, months)
+
+def eomonth(start_date, months) -> Expression:
+    return func("EOMONTH", start_date, months)
+
+def min_func(*args) -> Expression:
+    return func("MIN", *args)

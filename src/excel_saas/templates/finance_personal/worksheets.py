@@ -93,7 +93,8 @@ def build_lancamentos(request: GenerationRequest) -> WorksheetPlan:
     from .lancamentos_semantics import (
         build_status_formula, build_sys_receita, build_sys_despesa,
         build_sys_valor_parcela, build_sys_compromisso_futuro,
-        build_sys_caixa_conta, build_sys_caixa_destino, build_sys_cartao
+        build_sys_caixa_conta, build_sys_caixa_destino, build_sys_cartao,
+        build_status_fatura, build_sys_competencia_efetiva
     )
 
     columns = [
@@ -104,12 +105,15 @@ def build_lancamentos(request: GenerationRequest) -> WorksheetPlan:
         ColumnPlan(header="Conta", validation=conta_validation, width=15),
         ColumnPlan(header="Conta destino", validation=conta_validation, width=15),
         ColumnPlan(header="Cartão", validation=cartao_validation, width=15),
+        ColumnPlan(header="Competência da fatura", number_format="mmm/yyyy", width=20),
         ColumnPlan(header="Valor", validation=valor_validation, number_format="R$ #,##0.00", width=15),
         ColumnPlan(header="Parcelas", validation=parcelas_validation, width=10),
         ColumnPlan(header="Essencial?", validation=sim_nao_validation, width=12),
         ColumnPlan(header="Recorrente?", validation=sim_nao_validation, width=12),
         ColumnPlan(header="Status", formula=build_status_formula(), role=CellRole.FORMULA, width=25),
+        ColumnPlan(header="Status fatura", formula=build_status_fatura(), role=CellRole.FORMULA, width=25),
         ColumnPlan(header="Observação", width=25),
+        ColumnPlan(header="sys_CompetenciaEfetiva", formula=build_sys_competencia_efetiva(), role=CellRole.SYSTEM, hidden=True),
         ColumnPlan(header="sys_Receita", formula=build_sys_receita(), hidden=True),
         ColumnPlan(header="sys_Despesa", formula=build_sys_despesa(), hidden=True),
         ColumnPlan(header="sys_CaixaConta", formula=build_sys_caixa_conta(), hidden=True),

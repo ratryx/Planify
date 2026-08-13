@@ -30,7 +30,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert "tblLancamentos" in ws.tables
 
     table = ws.tables["tblLancamentos"]
-    assert table.ref == "B4:U5" # Columns B to U (20 columns now)
+    assert table.ref == "B4:X5" # 23 columns now
 
     # Check new tables
     contas_ws = wb["Contas"]
@@ -44,7 +44,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert contas_headers == ["Nome", "Tipo", "Instituição", "Saldo inicial", "Saldo atual", "Incluir no saldo disponível?", "Ativa?", "Status"]
 
     cartoes_headers = [cell.value for cell in cartoes_ws[6] if cell.value]
-    assert cartoes_headers == ["Nome", "Limite", "Dia fechamento", "Dia vencimento", "Conta de pagamento", "Ativo?"]
+    assert cartoes_headers == ["Nome", "Limite", "Dia fechamento", "Dia vencimento", "Conta de pagamento", "Ativo?", "Status", "sys_DiaFechamentoSeguro"]
 
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
@@ -164,9 +164,9 @@ def test_full_pipeline_light_and_dark(tmp_path):
             conta_dest_val = val
         elif "H" in sqref:
             cartao_val = val
-        elif "I" in sqref:
-            valor_val = val
         elif "J" in sqref:
+            valor_val = val
+        elif "K" in sqref:
             parcelas_val = val
 
     assert categoria_val is not None and "lista_categorias" in categoria_val.formula1
@@ -225,7 +225,7 @@ def test_empty_mode_tables(tmp_path):
 
     # 1 row of headers, 1 row of blank data
     assert wb["Contas"].tables["tblContas"].ref == "B4:I5"
-    assert wb["Cartões"].tables["tblCartoes"].ref == "B6:G7"
+    assert wb["Cartões"].tables["tblCartoes"].ref == "B6:I7"
 
     # Assert data validations exist for the blank row in empty mode
     contas_ws = wb["Contas"]
@@ -247,8 +247,8 @@ def test_sample_mode_tables(tmp_path):
 
     cartoes_ws = wb["Cartões"]
     cartoes_ref = cartoes_ws.tables["tblCartoes"].ref
-    # B6:G8 since default sample has 2 cards (header + 2 data rows)
-    assert cartoes_ref == "B6:G8"
+    # B6:I8 since default sample has 2 cards (header + 2 data rows)
+    assert cartoes_ref == "B6:I8"
 
     # Sample mode verification: check if Nubank is present
     assert contas_ws["B5"].value == "Nubank"

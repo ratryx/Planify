@@ -14,6 +14,6 @@ DEFAULT_ACCOUNTS_SAMPLE = [
 ]
 
 DEFAULT_CARDS_SAMPLE = [
-    ["Nubank", 8000.0, 25, 2, "Nubank", "Sim"],
-    ["Inter Black", 12000.0, 20, 5, "Nubank", "Sim"]
+    ["Nubank", 8000.0, 25, 2, "Nubank", "Sim", None, None],
+    ["Inter Black", 12000.0, 20, 5, "Nubank", "Sim", None, None]
 ]
