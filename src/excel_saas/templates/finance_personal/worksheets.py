@@ -90,6 +90,15 @@ def build_lancamentos(request: GenerationRequest) -> WorksheetPlan:
         error_message="Parcelas devem ser 1 ou maior."
     )
 
+    comp_fatura_validation = DataValidationPlan(
+        validate="date",
+        criteria="between",
+        minimum="1",
+        maximum="2958465",
+        ignore_blank=True,
+        error_message="A data de competência é inválida."
+    )
+
     from .lancamentos_semantics import (
         build_status_formula, build_sys_receita, build_sys_despesa,
         build_sys_valor_parcela, build_sys_compromisso_futuro,
@@ -105,7 +114,7 @@ def build_lancamentos(request: GenerationRequest) -> WorksheetPlan:
         ColumnPlan(header="Conta", validation=conta_validation, width=15),
         ColumnPlan(header="Conta destino", validation=conta_validation, width=15),
         ColumnPlan(header="Cartão", validation=cartao_validation, width=15),
-        ColumnPlan(header="Competência da fatura", number_format="mmm/yyyy", width=20),
+        ColumnPlan(header="Competência da fatura", validation=comp_fatura_validation, number_format="mmm/yyyy", width=20),
         ColumnPlan(header="Valor", validation=valor_validation, number_format="R$ #,##0.00", width=15),
         ColumnPlan(header="Parcelas", validation=parcelas_validation, width=10),
         ColumnPlan(header="Essencial?", validation=sim_nao_validation, width=12),

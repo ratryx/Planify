@@ -121,6 +121,15 @@ def build_sys_cartao() -> Expression:
         if_func(and_func(equals(tipo, literal("Despesa")), not_func(isblank(cartao))), valor,
             if_func(and_func(or_func(equals(tipo, literal("Pagamento de fatura")), equals(tipo, literal("Estorno / Reembolso"))), not_func(isblank(cartao))), negate(valor), literal(0))))
 
+def is_valid_date(val) -> Expression:
+    from excel_saas.core.excel.formulas import and_func, not_func, isblank, isnumber, greater_or_equal, less_than, literal, date_func, add
+    return and_func(
+        not_func(isblank(val)),
+        isnumber(val),
+        greater_or_equal(val, literal(1)),
+        less_than(val, add(date_func(literal(9999), literal(12), literal(31)), literal(1)))
+    )
+
 def build_status_fatura() -> Expression:
     from excel_saas.core.excel.formulas import (
         countifs, greater_than, sumifs
@@ -137,7 +146,7 @@ def build_status_fatura() -> Expression:
         if_func(card_duplicate, literal("Cartão duplicado"), literal("OK")))
         
     comp_populated = not_func(isblank(comp_fatura))
-    comp_valid = and_func(comp_populated, isnumber(comp_fatura), greater_than(comp_fatura, literal(0)))
+    comp_valid = is_valid_date(comp_fatura)
     comp_invalid = and_func(comp_populated, not_func(comp_valid))
     
     check_pagamento = if_func(tx_invalid, literal("Lançamento inválido"),
@@ -146,7 +155,7 @@ def build_status_fatura() -> Expression:
                 if_func(comp_invalid, literal("Competência inválida"), literal("OK")))))
                 
     data_populated = not_func(isblank(data))
-    data_valid = and_func(data_populated, isnumber(data), greater_than(data, literal(0)))
+    data_valid = is_valid_date(data)
     data_invalid = and_func(data_populated, not_func(data_valid))
     
     safe_closing_day = sumifs(TableRef("tblCartoes", "sys_DiaFechamentoSeguro"), TableRef("tblCartoes", "Nome"), cartao)
@@ -172,23 +181,25 @@ def build_sys_competencia_efetiva() -> Expression:
     from excel_saas.core.excel.references import TableRef
     
     comp_populated = not_func(isblank(comp_fatura))
-    comp_valid = and_func(comp_populated, isnumber(comp_fatura), greater_than(comp_fatura, literal(0)))
+    comp_valid = is_valid_date(comp_fatura)
     
-    normalized_override = date_func(year_func(comp_fatura), month_func(comp_fatura), literal(1))
+    override_date = int_func(comp_fatura)
+    normalized_override = date_func(year_func(override_date), month_func(override_date), literal(1))
     
     pagamento_logic = if_func(comp_valid, normalized_override, literal(""))
     
     safe_closing_day = sumifs(TableRef("tblCartoes", "sys_DiaFechamentoSeguro"), TableRef("tblCartoes", "Nome"), cartao)
     has_closing = greater_than(safe_closing_day, literal(0))
     
-    data_valid = and_func(not_func(isblank(data)), isnumber(data), greater_than(data, literal(0)))
+    data_valid = is_valid_date(data)
+    transaction_date = int_func(data)
     
-    effective_closing_day = min_func(safe_closing_day, day_func(eomonth(data, literal(0))))
-    effective_closing_date = date_func(year_func(data), month_func(data), effective_closing_day)
+    effective_closing_day = min_func(safe_closing_day, day_func(eomonth(transaction_date, literal(0))))
+    effective_closing_date = date_func(year_func(transaction_date), month_func(transaction_date), effective_closing_day)
     
-    nominal_competence = if_func(less_or_equal(data, effective_closing_date),
-        date_func(year_func(data), month_func(data), literal(1)),
-        edate(date_func(year_func(data), month_func(data), literal(1)), literal(1)))
+    nominal_competence = if_func(less_or_equal(transaction_date, effective_closing_date),
+        date_func(year_func(transaction_date), month_func(transaction_date), literal(1)),
+        edate(date_func(year_func(transaction_date), month_func(transaction_date), literal(1)), literal(1)))
         
     card_tx_logic = if_func(comp_valid, normalized_override,
         if_func(comp_populated, literal(""),
