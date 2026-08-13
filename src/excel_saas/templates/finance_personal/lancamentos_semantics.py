@@ -14,6 +14,12 @@ parcelas = ThisRowRef("Parcelas")
 data = ThisRowRef("Data")
 comp_fatura = ThisRowRef("Competência da fatura")
 sys_valor_parcela = ThisRowRef("sys_ValorParcela")
+comp_efetiva = ThisRowRef("sys_CompetenciaEfetiva")
+parcelas_efetivas = ThisRowRef("sys_ParcelasEfetivas")
+fatura_inicial = ThisRowRef("sys_FaturaInicial")
+fatura_final = ThisRowRef("sys_FaturaFinal")
+valor_parcela_base = ThisRowRef("sys_ValorParcelaBase")
+valor_ultima_parcela = ThisRowRef("sys_ValorUltimaParcela")
 
 def build_status_formula() -> Expression:
     is_empty_row = and_func(
@@ -132,35 +138,35 @@ def is_valid_date(val) -> Expression:
 
 def build_status_fatura() -> Expression:
     from excel_saas.core.excel.formulas import (
-        countifs, greater_than, sumifs
+        countifs, greater_than, sumifs, multiply, year_func, month_func, add, subtract
     )
     from excel_saas.core.excel.references import TableRef
-    
+
     tx_invalid = not_func(build_is_valid_transaction())
-    
+
     card_count = countifs(TableRef("tblCartoes", "Nome"), cartao)
     card_unregistered = equals(card_count, literal(0))
     card_duplicate = greater_than(card_count, literal(1))
-    
+
     check_card = if_func(card_unregistered, literal("Cartão não cadastrado"),
         if_func(card_duplicate, literal("Cartão duplicado"), literal("OK")))
-        
+
     comp_populated = not_func(isblank(comp_fatura))
     comp_valid = is_valid_date(comp_fatura)
     comp_invalid = and_func(comp_populated, not_func(comp_valid))
-    
+
     check_pagamento = if_func(tx_invalid, literal("Lançamento inválido"),
         if_func(not_equals(check_card, literal("OK")), check_card,
             if_func(isblank(comp_fatura), literal("Informe a competência"),
                 if_func(comp_invalid, literal("Competência inválida"), literal("OK")))))
-                
+
     data_populated = not_func(isblank(data))
     data_valid = is_valid_date(data)
     data_invalid = and_func(data_populated, not_func(data_valid))
-    
+
     safe_closing_day = sumifs(TableRef("tblCartoes", "sys_DiaFechamentoSeguro"), TableRef("tblCartoes", "Nome"), cartao)
     has_closing = greater_than(safe_closing_day, literal(0))
-    
+
     check_card_tx = if_func(tx_invalid, literal("Lançamento inválido"),
         if_func(not_equals(check_card, literal("OK")), check_card,
             if_func(comp_invalid, literal("Competência inválida"),
@@ -168,44 +174,152 @@ def build_status_fatura() -> Expression:
                     if_func(isblank(data), literal("Informe a data"),
                         if_func(data_invalid, literal("Data inválida"),
                             if_func(not_func(has_closing), literal("Sem fechamento"), literal("OK"))))))))
-                            
+
+    valid_comp = not_func(equals(comp_efetiva, literal("")))
+    safe_comp = if_func(valid_comp, comp_efetiva, literal(1))
+    start_month = add(multiply(year_func(safe_comp), literal(12)), month_func(safe_comp))
+    end_month = subtract(add(start_month, parcelas_efetivas), literal(1))
+
+    schedule_overflow = and_func(
+        equals(tipo, literal("Despesa")),
+        valid_comp,
+        greater_than(parcelas_efetivas, literal(0)),
+        greater_than(end_month, literal(120000))
+    )
+
+    final_card_tx = if_func(equals(check_card_tx, literal("OK")),
+        if_func(schedule_overflow, literal("Parcelamento fora do intervalo"), literal("OK")),
+        check_card_tx
+    )
+
     is_card_tx = and_func(not_func(isblank(cartao)), or_func(equals(tipo, literal("Despesa")), equals(tipo, literal("Estorno / Reembolso"))))
-    
+
     return if_func(equals(tipo, literal("Pagamento de fatura")), check_pagamento,
-        if_func(is_card_tx, check_card_tx, literal("")))
+        if_func(is_card_tx, final_card_tx, literal("")))
 
 def build_sys_competencia_efetiva() -> Expression:
     from excel_saas.core.excel.formulas import (
         date_func, year_func, month_func, day_func, edate, eomonth, min_func, sumifs, greater_than
     )
     from excel_saas.core.excel.references import TableRef
-    
+
     comp_populated = not_func(isblank(comp_fatura))
     comp_valid = is_valid_date(comp_fatura)
-    
+
     override_date = int_func(comp_fatura)
     normalized_override = date_func(year_func(override_date), month_func(override_date), literal(1))
-    
+
     pagamento_logic = if_func(comp_valid, normalized_override, literal(""))
-    
+
     safe_closing_day = sumifs(TableRef("tblCartoes", "sys_DiaFechamentoSeguro"), TableRef("tblCartoes", "Nome"), cartao)
     has_closing = greater_than(safe_closing_day, literal(0))
-    
+
     data_valid = is_valid_date(data)
     transaction_date = int_func(data)
-    
+
     effective_closing_day = min_func(safe_closing_day, day_func(eomonth(transaction_date, literal(0))))
     effective_closing_date = date_func(year_func(transaction_date), month_func(transaction_date), effective_closing_day)
-    
+
     nominal_competence = if_func(less_or_equal(transaction_date, effective_closing_date),
         date_func(year_func(transaction_date), month_func(transaction_date), literal(1)),
         edate(date_func(year_func(transaction_date), month_func(transaction_date), literal(1)), literal(1)))
-        
+
     card_tx_logic = if_func(comp_valid, normalized_override,
         if_func(comp_populated, literal(""),
             if_func(and_func(has_closing, data_valid), nominal_competence, literal(""))))
-            
+
     is_card_tx = and_func(not_func(isblank(cartao)), or_func(equals(tipo, literal("Despesa")), equals(tipo, literal("Estorno / Reembolso"))))
-    
+
     return if_func(equals(tipo, literal("Pagamento de fatura")), pagamento_logic,
         if_func(is_card_tx, card_tx_logic, literal("")))
+
+def build_sys_parcelas_efetivas() -> Expression:
+    is_card_despesa = and_func(
+        build_is_valid_transaction(),
+        equals(tipo, literal("Despesa")),
+        not_func(isblank(cartao))
+    )
+    return if_func(is_card_despesa,
+        if_func(isblank(parcelas), literal(1), parcelas),
+        literal(0)
+    )
+
+def _build_is_allocatable() -> Expression:
+    from excel_saas.core.excel.formulas import multiply, year_func, month_func, greater_than, less_or_equal
+    is_card_despesa = and_func(
+        build_is_valid_transaction(),
+        equals(tipo, literal("Despesa")),
+        not_func(isblank(cartao))
+    )
+    valid_comp = not_func(equals(comp_efetiva, literal("")))
+    has_installments = greater_than(parcelas_efetivas, literal(0))
+
+    safe_comp = if_func(valid_comp, comp_efetiva, literal(1))
+    start_month = add(
+        multiply(year_func(safe_comp), literal(12)),
+        month_func(safe_comp)
+    )
+    end_month = subtract(
+        add(start_month, parcelas_efetivas),
+        literal(1)
+    )
+    is_in_range = less_or_equal(end_month, literal(120000))
+
+    return and_func(
+        is_card_despesa,
+        valid_comp,
+        has_installments,
+        is_in_range
+    )
+
+def build_sys_fatura_inicial() -> Expression:
+    return if_func(_build_is_allocatable(), comp_efetiva, literal(""))
+
+def build_sys_fatura_final() -> Expression:
+    from excel_saas.core.excel.formulas import edate
+    has_fatura_inicial = not_func(equals(fatura_inicial, literal("")))
+    return if_func(has_fatura_inicial,
+        edate(fatura_inicial, subtract(parcelas_efetivas, literal(1))),
+        literal("")
+    )
+
+def build_sys_valor_parcela_base() -> Expression:
+    from excel_saas.core.excel.formulas import round_func
+    has_fatura_inicial = not_func(equals(fatura_inicial, literal("")))
+    return if_func(has_fatura_inicial,
+        round_func(divide(valor, parcelas_efetivas), literal(2)),
+        literal(0)
+    )
+
+def build_sys_valor_ultima_parcela() -> Expression:
+    from excel_saas.core.excel.formulas import multiply, group
+    has_fatura_inicial = not_func(equals(fatura_inicial, literal("")))
+    return if_func(has_fatura_inicial,
+        subtract(valor, multiply(valor_parcela_base, group(subtract(parcelas_efetivas, literal(1))))),
+        literal(0)
+    )
+
+def build_sys_ajuste_ultima_parcela() -> Expression:
+    has_fatura_inicial = not_func(equals(fatura_inicial, literal("")))
+    return if_func(has_fatura_inicial,
+        subtract(valor_ultima_parcela, valor_parcela_base),
+        literal(0)
+    )
+
+def build_sys_credito_fatura() -> Expression:
+    is_card_refund = and_func(
+        build_is_valid_transaction(),
+        equals(tipo, literal("Estorno / Reembolso")),
+        not_func(isblank(cartao)),
+        not_func(equals(comp_efetiva, literal("")))
+    )
+    return if_func(is_card_refund, valor, literal(0))
+
+def build_sys_pagamento_fatura() -> Expression:
+    is_card_payment = and_func(
+        build_is_valid_transaction(),
+        equals(tipo, literal("Pagamento de fatura")),
+        not_func(isblank(cartao)),
+        not_func(equals(comp_efetiva, literal("")))
+    )
+    return if_func(is_card_payment, valor, literal(0))

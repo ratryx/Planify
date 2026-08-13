@@ -103,7 +103,11 @@ def build_lancamentos(request: GenerationRequest) -> WorksheetPlan:
         build_status_formula, build_sys_receita, build_sys_despesa,
         build_sys_valor_parcela, build_sys_compromisso_futuro,
         build_sys_caixa_conta, build_sys_caixa_destino, build_sys_cartao,
-        build_status_fatura, build_sys_competencia_efetiva
+        build_status_fatura, build_sys_competencia_efetiva,
+        build_sys_parcelas_efetivas, build_sys_fatura_inicial,
+        build_sys_fatura_final, build_sys_valor_parcela_base,
+        build_sys_valor_ultima_parcela, build_sys_ajuste_ultima_parcela,
+        build_sys_credito_fatura, build_sys_pagamento_fatura
     )
 
     columns = [
@@ -126,10 +130,18 @@ def build_lancamentos(request: GenerationRequest) -> WorksheetPlan:
         ColumnPlan(header="sys_Receita", formula=build_sys_receita(), hidden=True),
         ColumnPlan(header="sys_Despesa", formula=build_sys_despesa(), hidden=True),
         ColumnPlan(header="sys_CaixaConta", formula=build_sys_caixa_conta(), hidden=True),
-        ColumnPlan(header="sys_CaixaDestino", formula=build_sys_caixa_destino(), hidden=True),
-        ColumnPlan(header="sys_Cartao", formula=build_sys_cartao(), hidden=True),
-        ColumnPlan(header="sys_ValorParcela", formula=build_sys_valor_parcela(), hidden=True),
-        ColumnPlan(header="sys_CompromissoFuturo", formula=build_sys_compromisso_futuro(), hidden=True),
+        ColumnPlan(header="sys_CaixaDestino", formula=build_sys_caixa_destino(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_Cartao", formula=build_sys_cartao(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_ValorParcela", formula=build_sys_valor_parcela(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_CompromissoFuturo", formula=build_sys_compromisso_futuro(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_ParcelasEfetivas", formula=build_sys_parcelas_efetivas(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_FaturaInicial", formula=build_sys_fatura_inicial(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_FaturaFinal", formula=build_sys_fatura_final(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_ValorParcelaBase", formula=build_sys_valor_parcela_base(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_ValorUltimaParcela", formula=build_sys_valor_ultima_parcela(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_AjusteUltimaParcela", formula=build_sys_ajuste_ultima_parcela(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_CreditoFatura", formula=build_sys_credito_fatura(), hidden=True, role=CellRole.SYSTEM),
+        ColumnPlan(header="sys_PagamentoFatura", formula=build_sys_pagamento_fatura(), hidden=True, role=CellRole.SYSTEM)
     ]
 
     table = TablePlan(

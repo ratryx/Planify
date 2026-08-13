@@ -94,6 +94,15 @@ def equals(left, right) -> Expression:
 def divide(left, right) -> Expression:
     return BinaryExpr(left, "/", right)
 
+def multiply(left, right) -> Expression:
+    return BinaryExpr(left, "*", right)
+
+def group(expr) -> Expression:
+    class GroupExpr(Expression):
+        def __str__(self):
+            return f"({_val(expr)})"
+    return GroupExpr()
+
 def negate(value) -> Expression:
     class UnaryExpr(Expression):
         def __str__(self):
@@ -163,3 +172,6 @@ def eomonth(start_date, months) -> Expression:
 
 def min_func(*args) -> Expression:
     return func("MIN", *args)
+
+def round_func(number, digits) -> Expression:
+    return func("ROUND", number, digits)

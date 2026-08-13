@@ -30,7 +30,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert "tblLancamentos" in ws.tables
 
     table = ws.tables["tblLancamentos"]
-    assert table.ref == "B4:X5" # 23 columns now
+    assert table.ref == "B4:AF5" # 31 columns now
 
     lancamentos_headers = [cell.value for cell in ws[4] if cell.value]
     assert lancamentos_headers == [
@@ -39,7 +39,10 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Essencial?", "Recorrente?", "Status", "Status fatura", "Observação",
         "sys_CompetenciaEfetiva", "sys_Receita", "sys_Despesa",
         "sys_CaixaConta", "sys_CaixaDestino", "sys_Cartao",
-        "sys_ValorParcela", "sys_CompromissoFuturo"
+        "sys_ValorParcela", "sys_CompromissoFuturo",
+        "sys_ParcelasEfetivas", "sys_FaturaInicial", "sys_FaturaFinal",
+        "sys_ValorParcelaBase", "sys_ValorUltimaParcela", "sys_AjusteUltimaParcela",
+        "sys_CreditoFatura", "sys_PagamentoFatura"
     ]
 
     comp_fatura_cell = ws["I5"]
