@@ -10,8 +10,9 @@ def build_comece_aqui(request: GenerationRequest) -> WorksheetPlan:
         CellPlan(row=5, col=1, value="Instruções Iniciais:", role=CellRole.HEADER, bold=True),
         CellPlan(row=6, col=1, value="1. Cadastre suas contas na aba 'Contas'."),
         CellPlan(row=7, col=1, value="2. Cadastre seus cartões na aba 'Cartões'."),
-        CellPlan(row=8, col=1, value="3. Configure categorias na aba 'Configurações'."),
-        CellPlan(row=9, col=1, value="4. Registre lançamentos na aba 'Lançamentos'."),
+        CellPlan(row=8, col=1, value="Para cadastrar um cartão, basta informar um nome. Limite, fechamento, vencimento e conta de pagamento são opcionais."),
+        CellPlan(row=9, col=1, value="3. Configure categorias na aba 'Configurações'."),
+        CellPlan(row=10, col=1, value="4. Registre lançamentos na aba 'Lançamentos'."),
         CellPlan(row=11, col=1, value="Convenções Visuais:"),
         CellPlan(row=12, col=1, value="Células editáveis (Input)", role=CellRole.INPUT),
         CellPlan(row=13, col=1, value="Células automáticas (Fórmulas/Sistema) - Não edite", role=CellRole.FORMULA),
@@ -36,9 +37,9 @@ def build_dashboard(request: GenerationRequest) -> WorksheetPlan:
         CellPlan(row=1, col=1, value="Dashboard Principal", role=CellRole.TITLE, size=16, bold=True),
         CellPlan(row=3, col=1, value="Resultado Registrado", role=CellRole.HEADER),
         CellPlan(row=4, col=1, formula=subtract(sumifs(val_ref, tipo_ref, literal('Receita')), sumifs(val_ref, tipo_ref, literal('Despesa'))), role=CellRole.FORMULA, number_format="R$ #,##0.00", size=14, bold=True),
-        CellPlan(row=3, col=3, value="Receitas do Mês", role=CellRole.HEADER),
+        CellPlan(row=3, col=3, value="Receitas Registradas", role=CellRole.HEADER),
         CellPlan(row=4, col=3, formula=sumifs(val_ref, tipo_ref, literal('Receita')), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
-        CellPlan(row=3, col=4, value="Despesas do Mês", role=CellRole.HEADER),
+        CellPlan(row=3, col=4, value="Despesas Registradas", role=CellRole.HEADER),
         CellPlan(row=4, col=4, formula=sumifs(val_ref, tipo_ref, literal('Despesa')), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
     ]
     

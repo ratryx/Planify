@@ -24,7 +24,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Configurações"
     ]
 
-    ws = wb["Lan\u00e7amentos"]
+    ws = wb["Lançamentos"]
 
     # Check table existence (openpyxl supports this)
     assert "tblLancamentos" in ws.tables
@@ -73,15 +73,32 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert str(saldo_cell.value).startswith("=")
     assert "SUMIFS(tblLancamentos[Valor],tblLancamentos[Tipo],\"Receita\")" in str(saldo_cell.value)
 
-    # Receitas do Mês
+    # Receitas Registradas
     receita_cell = dash_ws["D5"]
     assert str(receita_cell.value).startswith("=")
     assert "SUMIFS(tblLancamentos[Valor]" in str(receita_cell.value)
 
-    # Despesas do Mês
+    # Despesas Registradas
     despesa_cell = dash_ws["E5"]
     assert str(despesa_cell.value).startswith("=")
     assert "SUMIFS(tblLancamentos[Valor]" in str(despesa_cell.value)
+
+    # Check data validation logic for Contas (especially Saldo inicial on column E)
+    saldo_val = None
+    for val in contas_ws.data_validations.dataValidation:
+        if "E" in val.sqref.__str__():
+            saldo_val = val
+            break
+
+    assert saldo_val is not None
+    assert saldo_val.type == "decimal"
+    assert saldo_val.operator in (None, "between") # between is the default operator in Excel XML
+    assert saldo_val.allowBlank is True
+
+    # We must assert that it correctly handles negative, positive, and zero, and uses exact Excel technical bounds
+    assert "-9.99999999999999e+307" in saldo_val.formula1.lower()
+    assert "9.99999999999999e+307" in saldo_val.formula2.lower()
+    assert "1000000000" not in saldo_val.formula1
 
     req_dark = GenerationRequest(template_id="finance_personal", year=2026, theme="dark")
     path_dark = generate(req_dark, output_dir)
@@ -113,3 +130,40 @@ def test_literal_string_starts_with_equal(tmp_path):
     cell = ws["A1"]
     assert cell.value == "=not_a_formula"
     assert cell.data_type == "s" # String type, not formula ('f')
+
+def test_empty_mode_tables(tmp_path):
+    output_dir = str(tmp_path)
+    req = GenerationRequest(template_id="finance_personal", year=2026, with_sample_data=False)
+    path = generate(req, output_dir)
+    wb = openpyxl.load_workbook(path, data_only=False)
+
+    # 1 row of headers, 1 row of blank data
+    assert wb["Contas"].tables["tblContas"].ref == "B4:G5"
+    assert wb["Cartões"].tables["tblCartoes"].ref == "B6:G7"
+
+    # Assert data validations exist for the blank row in empty mode
+    contas_ws = wb["Contas"]
+    validations = contas_ws.data_validations.dataValidation
+    assert len(validations) > 0
+
+def test_sample_mode_tables(tmp_path):
+    output_dir = str(tmp_path)
+    req = GenerationRequest(template_id="finance_personal", year=2026, with_sample_data=True)
+    path = generate(req, output_dir)
+    wb = openpyxl.load_workbook(path, data_only=False)
+
+    contas_ws = wb["Contas"]
+    contas_ref = contas_ws.tables["tblContas"].ref
+    # B4:G7 since default sample has 3 accounts (header + 3 data rows)
+    assert contas_ref == "B4:G7"
+
+    cartoes_ws = wb["Cartões"]
+    cartoes_ref = cartoes_ws.tables["tblCartoes"].ref
+    # B6:G8 since default sample has 2 cards (header + 2 data rows)
+    assert cartoes_ref == "B6:G8"
+
+    # Sample mode verification: check if Nubank is present
+    assert contas_ws["B5"].value == "Nubank"
+    assert cartoes_ws["B7"].value == "Nubank"
+    # Conta de pagamento for the Nubank card is "Nubank"
+    assert cartoes_ws["F7"].value == "Nubank"
