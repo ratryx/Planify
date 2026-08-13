@@ -4,7 +4,8 @@ from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, Ta
 
 def test_sanitize_worksheet_name():
     assert sanitize_worksheet_name("Normal") == "Normal"
-    assert sanitize_worksheet_name("Invalid/Chars*?[ ]\\") == "InvalidChars"
+    assert sanitize_worksheet_name("Invalid/Chars*?[ ]\\:") == "InvalidChars"
+    assert sanitize_worksheet_name("Receitas:2026") == "Receitas2026"
     assert sanitize_worksheet_name("A" * 50) == "A" * 31
     assert sanitize_worksheet_name("'Quoted'") == "Quoted"
     assert sanitize_worksheet_name("") == "Sheet"

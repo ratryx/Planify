@@ -1,12 +1,12 @@
 import re
 
 # Excel restricts these characters in worksheet names
-INVALID_SHEET_CHARS = r'[\\/?*\[\]]'
+INVALID_SHEET_CHARS = r'[\\/?*\[\]:]'
 
 def sanitize_worksheet_name(name: str) -> str:
     """
     Sanitizes a worksheet name according to Excel rules:
-    - Removes invalid characters: \\ / ? * [ ]
+    - Removes invalid characters: \\ / ? * [ ] :
     - Removes leading and trailing apostrophes
     - Truncates to 31 characters
     - Provides a default if empty

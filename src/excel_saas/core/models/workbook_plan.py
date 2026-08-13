@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any, Union
 from .cell_roles import CellRole
+from excel_saas.core.excel.formulas import Formula, Expression
 
 @dataclass
 class DataValidationPlan:
@@ -16,7 +17,7 @@ class ColumnPlan:
     header: str
     width: Optional[float] = None
     role: CellRole = CellRole.INPUT
-    formula: Optional[str] = None  # if this column is entirely calculated
+    formula: Optional[Union[str, Formula, Expression]] = None  # if this column is entirely calculated
     validation: Optional[DataValidationPlan] = None
     number_format: Optional[str] = None
 
@@ -34,7 +35,7 @@ class CellPlan:
     row: int  # 0-indexed
     col: int  # 0-indexed
     value: Any = None
-    formula: Optional[str] = None
+    formula: Optional[Union[str, Formula, Expression]] = None
     role: CellRole = CellRole.NORMAL
     number_format: Optional[str] = None
     bold: bool = False

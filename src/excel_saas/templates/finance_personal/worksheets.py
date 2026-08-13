@@ -127,7 +127,7 @@ def build_configuracoes(request: GenerationRequest) -> WorksheetPlan:
         
     return WorksheetPlan(
         name="Configurações",
-        is_protected=True, # Protect the structure, leave input cells unlocked
+        is_protected=False, # Intentionally unprotected for Table expansion
         show_gridlines=False,
         cells=cells,
         tables=[tbl_categorias, tbl_contas, tbl_cartoes],
