@@ -445,3 +445,17 @@ def test_sample_mode_tables(tmp_path):
     assert cartoes_ws["H8"].data_type == "f"
     assert str(cartoes_ws["I8"].value).startswith("=")
     assert cartoes_ws["I8"].data_type == "f"
+    assert str(cartoes_ws["J8"].value).startswith("=")
+    assert cartoes_ws["J8"].data_type == "f"
+
+    from openpyxl.utils import column_index_from_string
+    col_j_idx = column_index_from_string("J")
+    j_hidden = False
+    for col_dim in cartoes_ws.column_dimensions.values():
+        if getattr(col_dim, "hidden", False):
+            d_min = getattr(col_dim, "min", None)
+            d_max = getattr(col_dim, "max", None)
+            if d_min and d_max and d_min <= col_j_idx <= d_max:
+                j_hidden = True
+                break
+    assert j_hidden, "Column J in Cartões is not physically hidden"
