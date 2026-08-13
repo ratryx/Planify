@@ -244,12 +244,20 @@ def build_sys_parcelas_efetivas() -> Expression:
         literal(0)
     )
 
+def _build_has_unique_registered_card() -> Expression:
+    from excel_saas.core.excel.formulas import countifs, equals, not_func, isblank, and_func, literal
+    from excel_saas.core.excel.references import TableRef
+
+    cartao_populated = not_func(isblank(cartao))
+    is_unique = equals(countifs(TableRef("tblCartoes", "Nome"), cartao), literal(1))
+    return and_func(cartao_populated, is_unique)
+
 def _build_is_allocatable() -> Expression:
     from excel_saas.core.excel.formulas import multiply, year_func, month_func, greater_than, less_or_equal
     is_card_despesa = and_func(
         build_is_valid_transaction(),
         equals(tipo, literal("Despesa")),
-        not_func(isblank(cartao))
+        _build_has_unique_registered_card()
     )
     valid_comp = not_func(equals(comp_efetiva, literal("")))
     has_installments = greater_than(parcelas_efetivas, literal(0))
@@ -310,7 +318,7 @@ def build_sys_credito_fatura() -> Expression:
     is_card_refund = and_func(
         build_is_valid_transaction(),
         equals(tipo, literal("Estorno / Reembolso")),
-        not_func(isblank(cartao)),
+        _build_has_unique_registered_card(),
         not_func(equals(comp_efetiva, literal("")))
     )
     return if_func(is_card_refund, valor, literal(0))
@@ -319,7 +327,7 @@ def build_sys_pagamento_fatura() -> Expression:
     is_card_payment = and_func(
         build_is_valid_transaction(),
         equals(tipo, literal("Pagamento de fatura")),
-        not_func(isblank(cartao)),
+        _build_has_unique_registered_card(),
         not_func(equals(comp_efetiva, literal("")))
     )
     return if_func(is_card_payment, valor, literal(0))

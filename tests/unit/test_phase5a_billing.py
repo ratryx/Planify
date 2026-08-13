@@ -128,6 +128,9 @@ def test_schedule_range_safety():
     assert 'YEAR(IF(NOT([@sys_CompetenciaEfetiva]=""),[@sys_CompetenciaEfetiva],1))*12+MONTH(IF(NOT([@sys_CompetenciaEfetiva]=""),[@sys_CompetenciaEfetiva],1))' in f_str
     # maximum month 120000
     assert '<=120000' in f_str
+    assert 'COUNTIFS(tblCartoes[Nome],[@Cartão])=1' in f_str
+    assert 'tblCartoes[Status]' not in f_str
+    assert 'Status fatura' not in f_str
 
     status_str = str(build_status_fatura())
     assert '"Parcelamento fora do intervalo"' in status_str
@@ -146,10 +149,16 @@ def test_credits_and_payments():
     credit_str = str(build_sys_credito_fatura())
     assert 'NOT([@sys_CompetenciaEfetiva]="")' in credit_str
     assert '[@Tipo]="Estorno / Reembolso"' in credit_str
+    assert 'COUNTIFS(tblCartoes[Nome],[@Cartão])=1' in credit_str
+    assert 'tblCartoes[Status]' not in credit_str
+    assert 'Status fatura' not in credit_str
     assert ',[@Valor],0)' in credit_str
 
     payment_str = str(build_sys_pagamento_fatura())
     assert '[@Tipo]="Pagamento de fatura"' in payment_str
+    assert 'COUNTIFS(tblCartoes[Nome],[@Cartão])=1' in payment_str
+    assert 'tblCartoes[Status]' not in payment_str
+    assert 'Status fatura' not in payment_str
     assert ',[@Valor],0)' in payment_str
 
     # Phase 4 regression:
