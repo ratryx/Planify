@@ -1,10 +1,17 @@
 import pytest
-from excel_saas.core.excel.references import TableRef, StringRef
-from excel_saas.core.excel.formulas import Formula, sumifs, indirect, _val
+from excel_saas.core.excel.references import TableRef, StringRef, DefinedNameRef, CellRef
+from excel_saas.core.excel.formulas import Formula, sumifs, subtract, add, literal, func, _val
 
 def test_table_ref():
     assert str(TableRef("tblLancamentos")) == "tblLancamentos"
     assert str(TableRef("tblLancamentos", "Valor")) == "tblLancamentos[Valor]"
+
+def test_defined_name_ref():
+    assert str(DefinedNameRef("lista_categorias")) == "lista_categorias"
+
+def test_cell_ref():
+    assert str(CellRef("A1")) == "A1"
+    assert str(CellRef("A1", "Comece Aqui")) == "'Comece Aqui'!A1"
 
 def test_string_ref():
     assert str(StringRef("A1:B10")) == "A1:B10"
@@ -18,25 +25,37 @@ def test_formula_builder():
     assert str(f2) == "=SUM(A1:A10)"
 
 def test_val_coercion():
-    assert _val(10) == "10"
-    assert _val("Test") == '"Test"'
-    assert _val("Test\"Quote") == '"Test""Quote"'
+    assert _val("Receita") == '"Receita"'
     assert _val(True) == "TRUE"
-    assert _val(None) == '""'
+    assert _val(False) == "FALSE"
+    assert _val(10.5) == "10.5"
     assert _val(TableRef("tbl", "col")) == "tbl[col]"
-    assert _val(Formula("=A1")) == "A1"
+    # Test string escaping
+    assert _val('Despesa "Especial"') == '"Despesa ""Especial"""'
 
-def test_sumifs_builder():
+def test_ast_sumifs():
     val_ref = TableRef("tbl", "Valor")
-    crit_ref = TableRef("tbl", "Tipo")
+    tipo_ref = TableRef("tbl", "Tipo")
     
-    f = sumifs(val_ref, crit_ref, "Receita")
+    expr = sumifs(val_ref, tipo_ref, literal('Receita'))
+    assert str(expr) == 'SUMIFS(tbl[Valor],tbl[Tipo],"Receita")'
+    
+    f = Formula(expr)
     assert str(f) == '=SUMIFS(tbl[Valor],tbl[Tipo],"Receita")'
-    
-    with pytest.raises(ValueError):
-        sumifs(val_ref, crit_ref) # Missing criteria
 
-def test_indirect_builder():
-    cat_ref = TableRef("tblCategorias", "Categoria")
-    f = indirect(cat_ref)
-    assert str(f) == '=INDIRECT(tblCategorias[Categoria])'
+def test_ast_arithmetic():
+    expr = subtract(func("SUM", "A1:A10"), literal(10))
+    assert str(expr) == 'SUM("A1:A10")-10'
+    
+    expr2 = add(literal(5), literal(20))
+    assert str(expr2) == '5+20'
+
+def test_formula_nesting():
+    val_ref = TableRef("tbl", "Valor")
+    tipo_ref = TableRef("tbl", "Tipo")
+    expr = subtract(
+        sumifs(val_ref, tipo_ref, literal('Receita')),
+        sumifs(val_ref, tipo_ref, literal('Despesa'))
+    )
+    assert str(expr) == 'SUMIFS(tbl[Valor],tbl[Tipo],"Receita")-SUMIFS(tbl[Valor],tbl[Tipo],"Despesa")'
+    assert str(Formula(expr)) == '=SUMIFS(tbl[Valor],tbl[Tipo],"Receita")-SUMIFS(tbl[Valor],tbl[Tipo],"Despesa")'

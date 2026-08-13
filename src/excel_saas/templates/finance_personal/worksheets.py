@@ -25,7 +25,7 @@ def build_comece_aqui(request: GenerationRequest) -> WorksheetPlan:
     )
 
 def build_dashboard(request: GenerationRequest) -> WorksheetPlan:
-    from excel_saas.core.excel.formulas import sumifs
+    from excel_saas.core.excel.formulas import sumifs, subtract, literal
     from excel_saas.core.excel.references import TableRef
     
     val_ref = TableRef("tblLancamentos", "Valor")
@@ -34,11 +34,11 @@ def build_dashboard(request: GenerationRequest) -> WorksheetPlan:
     cells = [
         CellPlan(row=1, col=1, value="Dashboard Principal", role=CellRole.TITLE, size=16, bold=True),
         CellPlan(row=3, col=1, value="Saldo Disponível Hoje", role=CellRole.HEADER),
-        CellPlan(row=4, col=1, formula=f"={sumifs(val_ref, tipo_ref, 'Receita')} - {sumifs(val_ref, tipo_ref, 'Despesa')}", role=CellRole.FORMULA, number_format="R$ #,##0.00", size=14, bold=True),
+        CellPlan(row=4, col=1, formula=subtract(sumifs(val_ref, tipo_ref, literal('Receita')), sumifs(val_ref, tipo_ref, literal('Despesa'))), role=CellRole.FORMULA, number_format="R$ #,##0.00", size=14, bold=True),
         CellPlan(row=3, col=3, value="Receitas do Mês", role=CellRole.HEADER),
-        CellPlan(row=4, col=3, formula=sumifs(val_ref, tipo_ref, 'Receita'), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
+        CellPlan(row=4, col=3, formula=sumifs(val_ref, tipo_ref, literal('Receita')), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
         CellPlan(row=3, col=4, value="Despesas do Mês", role=CellRole.HEADER),
-        CellPlan(row=4, col=4, formula=sumifs(val_ref, tipo_ref, 'Despesa'), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
+        CellPlan(row=4, col=4, formula=sumifs(val_ref, tipo_ref, literal('Despesa')), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
     ]
     
     return WorksheetPlan(
@@ -50,8 +50,7 @@ def build_dashboard(request: GenerationRequest) -> WorksheetPlan:
     )
 
 def build_lancamentos(request: GenerationRequest) -> WorksheetPlan:
-    from excel_saas.core.excel.formulas import indirect
-    from excel_saas.core.excel.references import TableRef
+    from excel_saas.core.excel.references import DefinedNameRef
     
     tipo_validation = DataValidationPlan(
         validate="list",
@@ -59,9 +58,9 @@ def build_lancamentos(request: GenerationRequest) -> WorksheetPlan:
     )
     sim_nao_validation = DataValidationPlan(validate="list", source=["Sim", "Não"])
     
-    cat_validation = DataValidationPlan(validate="list", source=indirect(TableRef("tblCategorias", "Categoria")))
-    conta_validation = DataValidationPlan(validate="list", source=indirect(TableRef("tblContas", "Conta")))
-    cartao_validation = DataValidationPlan(validate="list", source=indirect(TableRef("tblCartoes", "Cartão")))
+    cat_validation = DataValidationPlan(validate="list", source=DefinedNameRef("lista_categorias"))
+    conta_validation = DataValidationPlan(validate="list", source=DefinedNameRef("lista_contas"))
+    cartao_validation = DataValidationPlan(validate="list", source=DefinedNameRef("lista_cartoes"))
     
     columns = [
         ColumnPlan(header="Data", number_format="dd/mm/yyyy", width=12),
@@ -90,7 +89,7 @@ def build_lancamentos(request: GenerationRequest) -> WorksheetPlan:
     
     return WorksheetPlan(
         name="Lançamentos",
-        is_protected=True,
+        is_protected=False,
         freeze_panes="B5",
         cells=cells,
         tables=[table],

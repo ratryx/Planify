@@ -57,6 +57,44 @@ class WorksheetPlan:
     column_widths: Dict[int, float] = field(default_factory=dict)
 
 @dataclass
+class DefinedNamePlan:
+    name: str
+    refers_to: Union[str, Any]  # Formula or Reference object
+
+@dataclass
 class WorkbookPlan:
-    worksheets: List[WorksheetPlan] = field(default_factory=list)
-    # metadata, defined names, etc., can be added here
+    worksheets: List[WorksheetPlan]
+    defined_names: List[DefinedNamePlan] = field(default_factory=list)
+
+    def validate(self):
+        from excel_saas.core.excel.naming import is_valid_defined_name, sanitize_worksheet_name, sanitize_table_name
+        
+        # Check worksheet uniqueness
+        sheet_names = set()
+        for ws in self.worksheets:
+            s_name = sanitize_worksheet_name(ws.name).lower()
+            if s_name in sheet_names:
+                raise ValueError(f"Duplicate worksheet name detected: '{ws.name}'")
+            sheet_names.add(s_name)
+            
+        # Check table uniqueness and validity
+        table_names = set()
+        for ws in self.worksheets:
+            for tbl in ws.tables:
+                t_name = sanitize_table_name(tbl.name).lower()
+                if t_name in table_names:
+                    raise ValueError(f"Duplicate table name detected: '{tbl.name}'")
+                table_names.add(t_name)
+                
+        # Check defined names validity and uniqueness
+        def_names = set()
+        for dn in self.defined_names:
+            if not is_valid_defined_name(dn.name):
+                raise ValueError(f"Invalid defined name: '{dn.name}'")
+            d_name = dn.name.lower()
+            if d_name in def_names:
+                raise ValueError(f"Duplicate defined name detected: '{dn.name}'")
+            # Defined names can't conflict with tables if they are used globally without context
+            if d_name in table_names:
+                raise ValueError(f"Defined name '{dn.name}' conflicts with a table name")
+            def_names.add(d_name)

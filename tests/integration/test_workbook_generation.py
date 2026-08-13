@@ -28,9 +28,16 @@ def test_full_pipeline_light_and_dark(tmp_path):
     table = ws.tables["tblLancamentos"]
     assert table.ref == "B4:L5"
     
-    # Check that protection was enabled
-    assert ws.protection.sheet is True # Lançamentos is now protected
+    # Check that protection was disabled for natural expansion
+    assert ws.protection.sheet is False
     assert wb["Comece Aqui"].protection.sheet is True
+    assert wb["Dashboard"].protection.sheet is True
+    
+    # Verify defined names
+    assert "lista_categorias" in wb.defined_names
+    assert "lista_contas" in wb.defined_names
+    assert "lista_cartoes" in wb.defined_names
+    assert wb.defined_names["lista_categorias"].value == "tblCategorias[Categoria]"
     
     req_dark = GenerationRequest(template_id="finance_personal", year=2026, theme="dark")
     path_dark = generate(req_dark, output_dir)

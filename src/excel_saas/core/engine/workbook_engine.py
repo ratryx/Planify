@@ -1,33 +1,44 @@
 import xlsxwriter
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional
+from dataclasses import dataclass
 from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan, TablePlan, DataValidationPlan
 from excel_saas.themes.base import Theme
 from excel_saas.core.models.cell_roles import CellRole
 from excel_saas.core.excel.naming import sanitize_worksheet_name, sanitize_table_name
+
+@dataclass(frozen=True)
+class ResolvedCellFormat:
+    role: CellRole
+    bold: bool
+    size: int
+    number_format: Optional[str]
+    # In the future, this class will include borders, alignments, fill color, text_wrap, etc.
+    # The immutability and hashability ensure perfect cache behavior without dictionary keys.
 
 class FormatManager:
     """Manages creation and caching of XlsxWriter Format objects to avoid limits."""
     def __init__(self, workbook: xlsxwriter.Workbook, theme: Theme):
         self.workbook = workbook
         self.theme = theme
-        self._cache: Dict[Tuple[CellRole, bool, int, str], Any] = {}
+        self.cache: dict[ResolvedCellFormat, xlsxwriter.format.Format] = {}
         
-    def get_format(self, role: CellRole, bold: bool = False, size: int = None, number_format: str = None) -> Any:
-        key = (role, bold, size, number_format)
-        if key in self._cache:
-            return self._cache[key]
+    def get_format(self, role: CellRole, bold: bool = False, size: int = 12, number_format: str = None) -> xlsxwriter.format.Format:
+        resolved = ResolvedCellFormat(role=role, bold=bold, size=size, number_format=number_format)
+        
+        if resolved in self.cache:
+            return self.cache[resolved]
             
         fmt_kwargs = {
             'font_name': self.theme.font_family,
             'font_color': self.theme.colors.text_primary,
             'bg_color': self.theme.colors.background,
+            'bold': bold,
             'locked': True # By default, cells are locked (protected)
         }
         
-        if bold:
-            fmt_kwargs['bold'] = True
-        if size:
+        if size is not None:
             fmt_kwargs['font_size'] = size
+            
         if number_format:
             fmt_kwargs['num_format'] = number_format
             
@@ -49,7 +60,7 @@ class FormatManager:
             fmt_kwargs['bold'] = True
             
         fmt = self.workbook.add_format(fmt_kwargs)
-        self._cache[key] = fmt
+        self.cache[resolved] = fmt
         return fmt
 
 
@@ -59,9 +70,14 @@ class WorkbookEngine:
         self.theme = theme
 
     def render(self, filepath: str) -> None:
+        self.plan.validate()
+        
         workbook = xlsxwriter.Workbook(filepath)
         format_mgr = FormatManager(workbook, self.theme)
         
+        for dn in self.plan.defined_names:
+            workbook.define_name(dn.name, str(dn.refers_to))
+            
         for sheet_plan in self.plan.worksheets:
             self._render_sheet(workbook, sheet_plan, format_mgr)
             
@@ -101,11 +117,21 @@ class WorkbookEngine:
         for cell in cells:
             fmt = format_mgr.get_format(cell.role, cell.bold, cell.size, cell.number_format)
             
+            from excel_saas.core.excel.formulas import Formula
+            
             if cell.formula:
-                worksheet.write_formula(cell.row, cell.col, str(cell.formula), fmt, cell.value)
+                if isinstance(cell.formula, Formula):
+                    worksheet.write_formula(cell.row, cell.col, str(cell.formula), fmt, cell.value)
+                else:
+                    # Raw strings starting with = should NOT be formulas
+                    worksheet.write(cell.row, cell.col, str(cell.formula), fmt)
             else:
                 if cell.value is not None:
-                    worksheet.write(cell.row, cell.col, cell.value, fmt)
+                    if isinstance(cell.value, str) and cell.value.startswith('='):
+                        # Use write_string to prevent XlsxWriter from interpreting it as formula
+                        worksheet.write_string(cell.row, cell.col, cell.value, fmt)
+                    else:
+                        worksheet.write(cell.row, cell.col, cell.value, fmt)
                 else:
                     worksheet.write_blank(cell.row, cell.col, "", fmt)
                     

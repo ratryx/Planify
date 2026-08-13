@@ -6,13 +6,22 @@ from .worksheets import build_comece_aqui, build_dashboard, build_lancamentos, b
 
 class FinancePersonalTemplate(BaseTemplate):
     def build_workbook_plan(self, request: GenerationRequest) -> WorkbookPlan:
-        plan = WorkbookPlan()
-        plan.worksheets = [
-            build_comece_aqui(request),
-            build_dashboard(request),
-            build_lancamentos(request),
-            build_configuracoes(request)
-        ]
+        from excel_saas.core.models.workbook_plan import DefinedNamePlan
+        from excel_saas.core.excel.references import TableRef
+        
+        plan = WorkbookPlan(
+            worksheets=[
+                build_comece_aqui(request),
+                build_dashboard(request),
+                build_lancamentos(request),
+                build_configuracoes(request)
+            ],
+            defined_names=[
+                DefinedNamePlan("lista_categorias", TableRef("tblCategorias", "Categoria")),
+                DefinedNamePlan("lista_contas", TableRef("tblContas", "Conta")),
+                DefinedNamePlan("lista_cartoes", TableRef("tblCartoes", "Cartão"))
+            ]
+        )
         return plan
 
 # Auto-register this template

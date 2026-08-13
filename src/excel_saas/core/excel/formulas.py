@@ -1,20 +1,29 @@
-from typing import Union, Any
+from typing import Union, Any, List
 from .references import Reference
 
+class Expression:
+    """Base class for any formula expression."""
+    def __str__(self) -> str:
+        raise NotImplementedError
+
 class Formula:
-    """Represents a safely constructed Excel formula."""
-    def __init__(self, expression: str):
-        self.expression = expression
+    """
+    Represents a safely constructed Excel formula.
+    Should be passed to the engine to be rendered with a leading '='.
+    """
+    def __init__(self, expr: Union[Expression, str]):
+        self.expr = expr
         
     def __str__(self) -> str:
         # Ensure it starts with '='
-        if not self.expression.startswith("="):
-            return f"={self.expression}"
-        return self.expression
+        s = str(self.expr)
+        if not s.startswith("="):
+            return f"={s}"
+        return s
 
 def _val(value: Any) -> str:
-    """Converts a Python value/Reference into an Excel formula fragment."""
-    if isinstance(value, Reference):
+    """Converts a Python value/Reference/Expression into an Excel formula fragment."""
+    if isinstance(value, (Reference, Expression)):
         return str(value)
     if isinstance(value, Formula):
         # strip leading = for embedding
@@ -30,21 +39,46 @@ def _val(value: Any) -> str:
         return '""'
     return str(value)
 
-def sumifs(sum_range: Union[Reference, str], *criteria_pairs) -> Formula:
+class FuncExpr(Expression):
+    def __init__(self, name: str, *args):
+        self.name = name.upper()
+        self.args = args
+        
+    def __str__(self) -> str:
+        rendered_args = ",".join(_val(arg) for arg in self.args)
+        return f"{self.name}({rendered_args})"
+
+class BinaryExpr(Expression):
+    def __init__(self, left, op: str, right):
+        self.left = left
+        self.op = op
+        self.right = right
+        
+    def __str__(self) -> str:
+        return f"{_val(self.left)}{self.op}{_val(self.right)}"
+
+def func(name: str, *args) -> Expression:
+    """Constructs an Excel function call."""
+    return FuncExpr(name, *args)
+
+def sumifs(sum_range, *criteria_pairs) -> Expression:
     """
-    Constructs a SUMIFS formula.
-    criteria_pairs should be alternating criteria_range and criteria.
+    Constructs a SUMIFS formula expression.
     """
     if len(criteria_pairs) % 2 != 0:
         raise ValueError("SUMIFS requires an even number of criteria arguments.")
         
-    args = [_val(sum_range)]
-    for i in range(0, len(criteria_pairs), 2):
-        args.append(_val(criteria_pairs[i]))
-        args.append(_val(criteria_pairs[i+1]))
-        
-    return Formula(f"SUMIFS({','.join(args)})")
+    return func("SUMIFS", sum_range, *criteria_pairs)
 
-def indirect(ref_text: Union[Reference, str]) -> Formula:
-    """Constructs an INDIRECT formula."""
-    return Formula(f"INDIRECT({_val(ref_text)})")
+def subtract(left, right) -> Expression:
+    return BinaryExpr(left, "-", right)
+
+def add(left, right) -> Expression:
+    return BinaryExpr(left, "+", right)
+
+def literal(value: Any) -> Expression:
+    """Forces a value to be treated as a literal (useful if you just want to quote a string in an expression tree)."""
+    class LiteralExpr(Expression):
+        def __str__(self):
+            return _val(value)
+    return LiteralExpr()
