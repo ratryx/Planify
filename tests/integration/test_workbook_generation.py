@@ -320,6 +320,16 @@ def test_full_pipeline_light_and_dark(tmp_path):
     req_dark = GenerationRequest(template_id="finance_personal", year=2026, theme="dark")
     path_dark = generate(req_dark, output_dir)
     assert os.path.exists(path_dark)
+    
+    # Phase 5C: Dark structural regression check
+    wb_dark = openpyxl.load_workbook(path_dark, data_only=False)
+    assert "Faturas" in wb_dark.sheetnames
+    
+    ws_faturas_dark = wb_dark["Faturas"]
+    assert "tblFaturas" in ws_faturas_dark.tables
+    
+    table_f_dark = ws_faturas_dark.tables["tblFaturas"]
+    assert table_f_dark.ref == "B4:M5" 
 
 def test_literal_string_starts_with_equal(tmp_path):
     from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan

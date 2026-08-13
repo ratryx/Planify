@@ -27,9 +27,14 @@ def test_sys_competencia_normalizada():
     formula = _val(expr)
     
     assert "ISNUMBER([@Competência])" in formula
+    assert ">=1" in formula
+    assert "<DATE(9999,12,31)+1" in formula
+    
+    # Assert normalisation contains INT
     assert "INT([@Competência])" in formula
-    assert "1" in formula
-    assert "2958465" in formula
+    
+    # Assert validation DOES NOT require it to be strictly integer
+    assert "[@Competência]=INT([@Competência])" not in formula
     assert "DATE(YEAR(INT([@Competência])),MONTH(INT([@Competência])),1)" in formula
 
 def test_sys_dia_vencimento_seguro():
@@ -85,8 +90,8 @@ def test_vencimento_formula():
     expr = build_vencimento()
     formula = _val(expr)
     
-    # Check configured due > configured closing -> same month vs next month
-    assert ">" in formula
+    # Harden the due-month comparison
+    assert "SUMIFS(tblCartoes[sys_DiaVencimentoSeguro],tblCartoes[Nome],[@Cartão])>SUMIFS(tblCartoes[sys_DiaFechamentoSeguro],tblCartoes[Nome],[@Cartão])" in formula
     
     # Check EDATE protection against > 120000
     assert "YEAR([@sys_CompetenciaNormalizada])*12+MONTH([@sys_CompetenciaNormalizada])+1<=120000" in formula
@@ -134,6 +139,10 @@ def test_situacao():
     assert '"Em aberto — sem vencimento"' in formula
     assert '"Vencida"' in formula
     assert '"Em aberto"' in formula
+    
+    # Check empty string comparison instead of ISBLANK
+    assert '[@Vencimento]=""' in formula
+    assert "ISBLANK([@Vencimento])" not in formula
     
     # TODAY() > Vencimento, not >=
     assert "TODAY()>[@Vencimento]" in formula

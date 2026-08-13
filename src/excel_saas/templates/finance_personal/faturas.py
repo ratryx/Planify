@@ -12,9 +12,8 @@ from excel_saas.core.excel.references import ThisRowRef, TableRef, DefinedNameRe
 def is_valid_date(val: Expression) -> Expression:
     return and_func(
         isnumber(val),
-        equals(val, int_func(val)),
         greater_or_equal(val, literal(1)),
-        less_or_equal(val, literal(2958465))
+        less_than(val, add(date_func(literal(9999), literal(12), literal(31)), literal(1)))
     )
 
 def build_sys_competencia_normalizada() -> Expression:
@@ -167,7 +166,7 @@ def build_situacao() -> Expression:
         if_func(no_activity, literal("Sem movimento"),
             if_func(less_than(em_aberto, literal(0)), literal("Crédito"),
                 if_func(equals(em_aberto, literal(0)), literal("Paga"),
-                    if_func(isblank(venc), literal("Em aberto — sem vencimento"),
+                    if_func(equals(venc, literal("")), literal("Em aberto — sem vencimento"),
                         if_func(greater_than(today_func(), venc), literal("Vencida"), literal("Em aberto")))))))
 
 def build_faturas(request: GenerationRequest) -> WorksheetPlan:
