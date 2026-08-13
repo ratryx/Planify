@@ -188,8 +188,12 @@ class WorkbookEngine:
 
             for i, col in enumerate(table.columns):
                 c_idx = start_col + i
-                if col.width is not None:
-                    worksheet.set_column(c_idx, c_idx, col.width)
+                options = {}
+                if col.hidden:
+                    options['hidden'] = True
+
+                if col.width is not None or options:
+                    worksheet.set_column(c_idx, c_idx, col.width, None, options)
                 if col.validation:
                     # Apply validation from row after header down to end of table
                     self._apply_data_validation(worksheet, start_row + 1, c_idx, end_row, c_idx, col.validation)
@@ -214,7 +218,10 @@ class WorkbookEngine:
             options['criteria'] = validation.criteria
 
         if validation.minimum is not None:
-            options['minimum'] = validation.minimum
+            if options.get('criteria') in ('>', '<', '>=', '<=', '==', '!='):
+                options['value'] = validation.minimum
+            else:
+                options['minimum'] = validation.minimum
 
         if validation.maximum is not None:
             options['maximum'] = validation.maximum

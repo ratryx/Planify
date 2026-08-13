@@ -24,6 +24,7 @@ class ColumnPlan:
     formula: Optional[Union[str, Formula, Expression]] = None  # if this column is entirely calculated
     validation: Optional[DataValidationPlan] = None
     number_format: Optional[str] = None
+    hidden: bool = False
 
 @dataclass
 class TablePlan:
@@ -53,11 +54,11 @@ class WorksheetPlan:
     freeze_panes: Optional[str] = None  # e.g., 'A2' or 'B6'
     show_gridlines: bool = False
     tab_color: Optional[str] = None
-    
+
     # Content
     cells: List[CellPlan] = field(default_factory=list)
     tables: List[TablePlan] = field(default_factory=list)
-    
+
     # Columns config (0-indexed col index to width)
     column_widths: Dict[int, float] = field(default_factory=dict)
 
@@ -73,7 +74,7 @@ class WorkbookPlan:
 
     def validate(self):
         from excel_saas.core.excel.naming import is_valid_defined_name, sanitize_worksheet_name, sanitize_table_name
-        
+
         # Check worksheet uniqueness
         sheet_names = set()
         for ws in self.worksheets:
@@ -81,7 +82,7 @@ class WorkbookPlan:
             if s_name in sheet_names:
                 raise ValueError(f"Duplicate worksheet name detected: '{ws.name}'")
             sheet_names.add(s_name)
-            
+
         # Check table uniqueness and validity
         table_names = set()
         for ws in self.worksheets:
@@ -90,7 +91,7 @@ class WorkbookPlan:
                 if t_name in table_names:
                     raise ValueError(f"Duplicate table name detected: '{tbl.name}'")
                 table_names.add(t_name)
-                
+
         # Check defined names validity and uniqueness
         def_names = set()
         for dn in self.defined_names:

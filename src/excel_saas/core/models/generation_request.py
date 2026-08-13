@@ -9,7 +9,7 @@ class GenerationRequest:
     currency: str = "BRL"
     theme: str = "light"
     with_sample_data: bool = False
-    
+
     # Domain specific config
     profile: str = "couple"
     reserve_months: int = 6

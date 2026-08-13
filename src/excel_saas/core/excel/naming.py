@@ -13,10 +13,10 @@ def sanitize_worksheet_name(name: str) -> str:
     """
     safe_name = re.sub(INVALID_SHEET_CHARS, '', name)
     safe_name = safe_name.strip(" '")
-    
+
     if not safe_name:
         return "Sheet"
-        
+
     return safe_name[:31]
 
 def sanitize_table_name(name: str) -> str:
@@ -42,17 +42,17 @@ def is_valid_defined_name(name: str) -> bool:
     """
     if not name:
         return False
-        
+
     if not re.match(r'^[a-zA-Z_\\][a-zA-Z0-9_\.\?]*$', name):
         return False
-        
+
     # Check for cell reference pattern (A1 to XFD1048576 or R1C1)
     # simplified regex
     if re.match(r'^[A-Za-z]{1,3}[0-9]{1,7}$', name):
         return False
     if re.match(r'^R[0-9]*C[0-9]*$', name, re.IGNORECASE):
         return False
-        
+
     return True
 
 def escape_sheet_name(sheet_name: str) -> str:

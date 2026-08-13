@@ -30,7 +30,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert "tblLancamentos" in ws.tables
 
     table = ws.tables["tblLancamentos"]
-    assert table.ref == "B4:L5"
+    assert table.ref == "B4:U5" # Columns B to U (20 columns now)
 
     # Check new tables
     contas_ws = wb["Contas"]
@@ -38,6 +38,19 @@ def test_full_pipeline_light_and_dark(tmp_path):
 
     cartoes_ws = wb["Cartões"]
     assert "tblCartoes" in cartoes_ws.tables
+
+    # Check exact columns for tblContas and tblCartoes
+    contas_headers = [cell.value for cell in contas_ws[4]]
+    assert "Nome" in contas_headers
+    assert "Tipo" in contas_headers
+    assert "Saldo inicial" in contas_headers
+
+    cartoes_headers = [cell.value for cell in cartoes_ws[6]]
+    assert "Nome" in cartoes_headers
+    assert "Limite" in cartoes_headers
+    assert "Dia fechamento" in cartoes_headers
+    assert "Dia vencimento" in cartoes_headers
+    assert "Conta de pagamento" in cartoes_headers
 
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
@@ -71,17 +84,17 @@ def test_full_pipeline_light_and_dark(tmp_path):
     # Resultado Registrado
     saldo_cell = dash_ws["B5"]
     assert str(saldo_cell.value).startswith("=")
-    assert "SUMIFS(tblLancamentos[Valor],tblLancamentos[Tipo],\"Receita\")" in str(saldo_cell.value)
+    assert "SUM(tblLancamentos[sys_Receita])" in str(saldo_cell.value)
 
     # Receitas Registradas
     receita_cell = dash_ws["D5"]
     assert str(receita_cell.value).startswith("=")
-    assert "SUMIFS(tblLancamentos[Valor]" in str(receita_cell.value)
+    assert "SUM(tblLancamentos[sys_Receita])" in str(receita_cell.value)
 
     # Despesas Registradas
     despesa_cell = dash_ws["E5"]
     assert str(despesa_cell.value).startswith("=")
-    assert "SUMIFS(tblLancamentos[Valor]" in str(despesa_cell.value)
+    assert "SUM(tblLancamentos[sys_Despesa])" in str(despesa_cell.value)
 
     # Check data validation logic for Contas (especially Saldo inicial on column E)
     saldo_val = None
@@ -99,6 +112,62 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert "-9.99999999999999e+307" in saldo_val.formula1.lower()
     assert "9.99999999999999e+307" in saldo_val.formula2.lower()
     assert "1000000000" not in saldo_val.formula1
+
+    # Check Limite >= 0
+    limite_val = None
+    dia_fechamento_val = None
+    dia_vencimento_val = None
+    conta_pagamento_val = None
+    for val in cartoes_ws.data_validations.dataValidation:
+        sqref = val.sqref.__str__()
+        if "C" in sqref:
+            limite_val = val
+        elif "D" in sqref:
+            dia_fechamento_val = val
+        elif "E" in sqref:
+            dia_vencimento_val = val
+        elif "F" in sqref:
+            conta_pagamento_val = val
+
+    assert limite_val is not None
+    assert limite_val.type == "decimal"
+    assert "0" in limite_val.formula1
+
+    assert dia_fechamento_val is not None
+    assert dia_fechamento_val.type == "whole"
+    assert "1" in dia_fechamento_val.formula1
+    assert "31" in dia_fechamento_val.formula2
+
+    assert dia_vencimento_val is not None
+    assert dia_vencimento_val.type == "whole"
+    assert "1" in dia_vencimento_val.formula1
+    assert "31" in dia_vencimento_val.formula2
+
+    assert conta_pagamento_val is not None
+    assert conta_pagamento_val.type == "list"
+    assert "lista_contas" in conta_pagamento_val.formula1
+
+    # Check Lançamentos validations
+    categoria_val = None
+    conta_val = None
+    conta_dest_val = None
+    cartao_val = None
+
+    for val in ws.data_validations.dataValidation:
+        sqref = val.sqref.__str__()
+        if "E" in sqref:
+            categoria_val = val
+        elif "F" in sqref:
+            conta_val = val
+        elif "G" in sqref:
+            conta_dest_val = val
+        elif "H" in sqref:
+            cartao_val = val
+
+    assert categoria_val is not None and "lista_categorias" in categoria_val.formula1
+    assert conta_val is not None and "lista_contas" in conta_val.formula1
+    assert conta_dest_val is not None and "lista_contas" in conta_dest_val.formula1
+    assert cartao_val is not None and "lista_cartoes" in cartao_val.formula1
 
     req_dark = GenerationRequest(template_id="finance_personal", year=2026, theme="dark")
     path_dark = generate(req_dark, output_dir)

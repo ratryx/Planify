@@ -10,7 +10,7 @@ class FinancePersonalTemplate(BaseTemplate):
     def build_workbook_plan(self, request: GenerationRequest) -> WorkbookPlan:
         from excel_saas.core.models.workbook_plan import DefinedNamePlan
         from excel_saas.core.excel.references import TableRef
-        
+
         plan = WorkbookPlan(
             worksheets=[
                 build_comece_aqui(request),

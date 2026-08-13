@@ -9,14 +9,14 @@ class DummyTemplate(BaseTemplate):
 def test_registry_registration():
     registry = TemplateRegistry()
     registry.register("dummy", DummyTemplate)
-    
+
     template = registry.get("dummy")
     assert isinstance(template, DummyTemplate)
-    
+
 def test_registry_duplicate_registration():
     registry = TemplateRegistry()
     registry.register("dummy", DummyTemplate)
-    
+
     with pytest.raises(ValueError):
         registry.register("dummy", DummyTemplate)
 

@@ -19,7 +19,7 @@ def test_is_valid_defined_name():
     assert is_valid_defined_name("lista_categorias") == True
     assert is_valid_defined_name("Categorias") == True
     assert is_valid_defined_name("_hidden") == True
-    
+
     assert is_valid_defined_name("lista categorias") == False  # space
     assert is_valid_defined_name("1lista") == False  # starts with number
     assert is_valid_defined_name("A1") == False  # looks like cell
@@ -39,7 +39,7 @@ def test_workbook_structural_validation():
         defined_names=[DefinedNamePlan("lista_1", "tbl1[col1]")]
     )
     plan.validate()  # should not raise
-    
+
     # Duplicate sheet
     with pytest.raises(ValueError, match="Duplicate worksheet"):
         WorkbookPlan(
@@ -48,7 +48,7 @@ def test_workbook_structural_validation():
                 WorksheetPlan(name="SHEET1", cells=[])
             ]
         ).validate()
-        
+
     # Duplicate table
     with pytest.raises(ValueError, match="Duplicate table"):
         WorkbookPlan(
@@ -57,7 +57,7 @@ def test_workbook_structural_validation():
                 WorksheetPlan(name="Sheet2", cells=[], tables=[TablePlan("TBL1", "A1", [], False)])
             ]
         ).validate()
-        
+
     # Duplicate defined name
     with pytest.raises(ValueError, match="Duplicate defined name"):
         WorkbookPlan(
@@ -74,7 +74,7 @@ def test_workbook_structural_validation():
             worksheets=[],
             defined_names=[DefinedNamePlan("invalid name", "ref")]
         ).validate()
-        
+
     # Defined name conflicts with table
     with pytest.raises(ValueError, match="conflicts with a table"):
         WorkbookPlan(

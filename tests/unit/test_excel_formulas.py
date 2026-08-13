@@ -19,7 +19,7 @@ def test_string_ref():
 def test_formula_builder():
     f = Formula("SUM(A1:A10)")
     assert str(f) == "=SUM(A1:A10)"
-    
+
     # Pre-pended equal sign shouldn't double up
     f2 = Formula("=SUM(A1:A10)")
     assert str(f2) == "=SUM(A1:A10)"
@@ -36,17 +36,17 @@ def test_val_coercion():
 def test_ast_sumifs():
     val_ref = TableRef("tbl", "Valor")
     tipo_ref = TableRef("tbl", "Tipo")
-    
+
     expr = sumifs(val_ref, tipo_ref, literal('Receita'))
     assert str(expr) == 'SUMIFS(tbl[Valor],tbl[Tipo],"Receita")'
-    
+
     f = Formula(expr)
     assert str(f) == '=SUMIFS(tbl[Valor],tbl[Tipo],"Receita")'
 
 def test_ast_arithmetic():
     expr = subtract(func("SUM", "A1:A10"), literal(10))
     assert str(expr) == 'SUM("A1:A10")-10'
-    
+
     expr2 = add(literal(5), literal(20))
     assert str(expr2) == '5+20'
 
