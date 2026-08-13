@@ -21,6 +21,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Lançamentos",
         "Contas",
         "Cartões",
+        "Faturas",
         "Configurações"
     ]
 
@@ -95,7 +96,70 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert contas_headers == ["Nome", "Tipo", "Instituição", "Saldo inicial", "Saldo atual", "Incluir no saldo disponível?", "Ativa?", "Status"]
 
     cartoes_headers = [cell.value for cell in cartoes_ws[6] if cell.value]
-    assert cartoes_headers == ["Nome", "Limite", "Dia fechamento", "Dia vencimento", "Conta de pagamento", "Ativo?", "Status", "sys_DiaFechamentoSeguro"]
+    assert cartoes_headers == ["Nome", "Limite", "Dia fechamento", "Dia vencimento", "Conta de pagamento", "Ativo?", "Status", "sys_DiaFechamentoSeguro", "sys_DiaVencimentoSeguro"]
+
+
+    # Phase 5C: Check Faturas table
+    faturas_ws = wb["Faturas"]
+    assert "tblFaturas" in faturas_ws.tables
+    
+    table_f = faturas_ws.tables["tblFaturas"]
+    assert table_f.ref == "B4:M5"
+
+    faturas_headers = [cell.value for cell in faturas_ws[4] if cell.value]
+    assert faturas_headers == [
+        "Cartão", "Competência", "Fechamento", "Vencimento", "Compras / Parcelas",
+        "Créditos / Estornos", "Total da fatura", "Pagamentos", "Em aberto",
+        "Status", "Situação", "sys_CompetenciaNormalizada"
+    ]
+    
+    # Check blank data row formula cells
+    for col in ["D5", "E5", "F5", "G5", "H5", "I5", "J5", "K5", "L5", "M5"]:
+        cell = faturas_ws[col]
+        assert str(cell.value).startswith("="), f"Cell {col} should be formula, got {cell.value}"
+        assert cell.data_type == "f", f"Cell {col} should have data_type 'f', got {cell.data_type}"
+
+    # Check M column hidden physically
+    from openpyxl.utils import column_index_from_string
+    col_m_idx = column_index_from_string("M")
+    m_hidden = False
+    for col_dim in faturas_ws.column_dimensions.values():
+        if getattr(col_dim, "hidden", False):
+            d_min = getattr(col_dim, "min", None)
+            d_max = getattr(col_dim, "max", None)
+            if d_min and d_max and d_min <= col_m_idx <= d_max:
+                m_hidden = True
+                break
+    assert m_hidden, "Column M in Faturas is not physically hidden"
+
+    # Check validations
+    cartao_val = None
+    comp_val = None
+    for val in faturas_ws.data_validations.dataValidation:
+        sqref = val.sqref.__str__()
+        if "B" in sqref:
+            cartao_val = val
+        elif "C" in sqref:
+            comp_val = val
+
+    assert cartao_val is not None
+    assert cartao_val.type == "list"
+    assert "lista_cartoes" in cartao_val.formula1
+
+    assert comp_val is not None
+    assert comp_val.type == "date"
+    assert comp_val.operator in ("between", None)
+    assert "1" in comp_val.formula1
+    assert "2958465" in comp_val.formula2
+    assert getattr(comp_val, "allowBlank", False)
+
+    # Check number formats
+    assert "mmm/yyyy" in faturas_ws["C5"].number_format or faturas_ws["C5"].number_format == "General"
+    assert "dd/mm/yyyy" in faturas_ws["D5"].number_format
+    assert "dd/mm/yyyy" in faturas_ws["E5"].number_format
+    for col in ["F", "G", "H", "I", "J"]:
+        fmt = faturas_ws[f"{col}5"].number_format
+        assert "R$" in fmt or "General" not in fmt # Just ensuring it's formatting
 
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
@@ -107,6 +171,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert ws.protection.sheet is False
     assert contas_ws.protection.sheet is False
     assert cartoes_ws.protection.sheet is False
+    assert faturas_ws.protection.sheet is False
     assert config_ws.protection.sheet is False
 
     assert wb["Comece Aqui"].protection.sheet is True
@@ -291,7 +356,7 @@ def test_empty_mode_tables(tmp_path):
 
     # 1 row of headers, 1 row of blank data
     assert wb["Contas"].tables["tblContas"].ref == "B4:I5"
-    assert wb["Cartões"].tables["tblCartoes"].ref == "B6:I7"
+    assert wb["Cartões"].tables["tblCartoes"].ref == "B6:J7"
 
     # Assert data validations exist for the blank row in empty mode
     contas_ws = wb["Contas"]
@@ -314,7 +379,7 @@ def test_sample_mode_tables(tmp_path):
     cartoes_ws = wb["Cartões"]
     cartoes_ref = cartoes_ws.tables["tblCartoes"].ref
     # B6:I8 since default sample has 2 cards (header + 2 data rows)
-    assert cartoes_ref == "B6:I8"
+    assert cartoes_ref == "B6:J8"
 
     # Sample mode verification: check if Nubank is present
     assert contas_ws["B5"].value == "Nubank"

@@ -67,6 +67,22 @@ def build_sys_dia_fechamento_seguro() -> Expression:
     is_safe = and_func(nome_valid, fechamento_valid)
     return if_func(is_safe, fechamento, literal(""))
 
+def build_sys_dia_vencimento_seguro() -> Expression:
+    from excel_saas.core.excel.formulas import (
+        if_func, isblank, not_func, isnumber, literal,
+        greater_than, less_than, countifs, and_func, equals, int_func
+    )
+    from excel_saas.core.excel.references import ThisRowRef, TableRef
+    
+    nome = ThisRowRef("Nome")
+    vencimento = ThisRowRef("Dia vencimento")
+    
+    nome_valid = and_func(not_func(isblank(nome)), equals(countifs(TableRef("tblCartoes", "Nome"), nome), literal(1)))
+    vencimento_valid = and_func(not_func(isblank(vencimento)), isnumber(vencimento), equals(vencimento, int_func(vencimento)), greater_than(vencimento, literal(0)), less_than(vencimento, literal(32)))
+    
+    is_safe = and_func(nome_valid, vencimento_valid)
+    return if_func(is_safe, vencimento, literal(""))
+
 def build_cartoes(request: GenerationRequest) -> WorksheetPlan:
     sim_nao_validation = DataValidationPlan(validate="list", source=["Sim", "Não"])
     conta_validation = DataValidationPlan(validate="list", source=DefinedNameRef("lista_contas"), ignore_blank=True)
@@ -97,6 +113,7 @@ def build_cartoes(request: GenerationRequest) -> WorksheetPlan:
         ColumnPlan(header="Ativo?", validation=sim_nao_validation, width=12),
         ColumnPlan(header="Status", formula=build_status_formula(), role=CellRole.FORMULA, width=20),
         ColumnPlan(header="sys_DiaFechamentoSeguro", formula=build_sys_dia_fechamento_seguro(), role=CellRole.SYSTEM, hidden=True),
+        ColumnPlan(header="sys_DiaVencimentoSeguro", formula=build_sys_dia_vencimento_seguro(), role=CellRole.SYSTEM, hidden=True),
     ]
 
     data = DEFAULT_CARDS_SAMPLE if request.with_sample_data else []

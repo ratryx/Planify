@@ -5,6 +5,7 @@ from excel_saas.core.registry.template_registry import registry
 from .worksheets import build_comece_aqui, build_dashboard, build_lancamentos, build_configuracoes
 from .accounts import build_contas
 from .cards import build_cartoes
+from .faturas import build_faturas
 
 class FinancePersonalTemplate(BaseTemplate):
     def build_workbook_plan(self, request: GenerationRequest) -> WorkbookPlan:
@@ -18,6 +19,7 @@ class FinancePersonalTemplate(BaseTemplate):
                 build_lancamentos(request),
                 build_contas(request),
                 build_cartoes(request),
+                build_faturas(request),
                 build_configuracoes(request)
             ],
             defined_names=[

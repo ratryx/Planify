@@ -97,6 +97,9 @@ def divide(left, right) -> Expression:
 def multiply(left, right) -> Expression:
     return BinaryExpr(left, "*", right)
 
+def concat(left, right) -> Expression:
+    return BinaryExpr(left, "&", right)
+
 def group(expr) -> Expression:
     class GroupExpr(Expression):
         def __str__(self):
@@ -163,6 +166,9 @@ def month_func(date) -> Expression:
 
 def day_func(date) -> Expression:
     return func("DAY", date)
+
+def today_func() -> Expression:
+    return func("TODAY")
 
 def edate(start_date, months) -> Expression:
     return func("EDATE", start_date, months)
