@@ -26,6 +26,16 @@ def test_sys_indice_lancamento():
     assert 'tblLancamentos[Status fatura]' not in f
     assert 'tblFaturas' not in f
 
+    # Precedence assertions
+    expected_grouped_numerator = '(ROW(tblLancamentos[sys_ParcelasEfetivas])-MIN(ROW(tblLancamentos[sys_ParcelasEfetivas]))+1)'
+    expected_grouped_denominator = '((tblLancamentos[sys_ParcelasEfetivas]>1)*(tblLancamentos[sys_FaturaInicial]<>"")*(tblLancamentos[sys_FaturaFinal]<>""))'
+    
+    # Grouping is enforced
+    assert f"{expected_grouped_numerator}/{expected_grouped_denominator}" in f, "Numerator and denominator must be explicitly grouped before division"
+    
+    bad_ungrouped_shape = "ROW(tblLancamentos[sys_ParcelasEfetivas])-MIN(ROW(tblLancamentos[sys_ParcelasEfetivas]))+1/(tblLancamentos[sys_ParcelasEfetivas]>1)"
+    assert bad_ungrouped_shape not in f, "Ungrouped arithmetic precedence violation detected"
+
 def test_source_projection():
     columns = ["Descrição", "Cartão", "Valor", "sys_ParcelasEfetivas", "sys_ValorParcelaBase", 
                "sys_FaturaInicial", "sys_FaturaFinal", "sys_AjusteUltimaParcela"]
@@ -51,6 +61,12 @@ def test_remaining_month():
     assert '*12' in f
     assert 'DATEDIF' not in f
     assert '+1' in f
+    
+    # Month index precedence assertions
+    expected_grouped_final_index = '(YEAR([@[Última fatura]])*12+MONTH([@[Última fatura]]))'
+    expected_grouped_current_index = '(YEAR(DATE(YEAR(TODAY()),MONTH(TODAY()),1))*12+MONTH(DATE(YEAR(TODAY()),MONTH(TODAY()),1)))'
+    
+    assert f"{expected_grouped_final_index}-{expected_grouped_current_index}" in f, "Month indices must be explicitly grouped before subtraction"
 
 def test_commitment():
     f = str(Formula(build_compromisso_restante()))

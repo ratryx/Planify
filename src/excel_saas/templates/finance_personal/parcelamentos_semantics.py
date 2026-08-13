@@ -37,7 +37,7 @@ def build_sys_indice_lancamento():
         literal(1)
     )
 
-    array_computation = divide(relative_source_index, qualifying_denominator)
+    array_computation = divide(group(relative_source_index), group(qualifying_denominator))
     
     return iferror_func(
         aggregate_func(literal(15), literal(6), array_computation, sys_ordem),
@@ -67,7 +67,7 @@ def build_parcelas_restantes():
         month_func(ultima_fatura)
     )
     
-    calc_remaining = add(subtract(final_index, current_index), literal(1))
+    calc_remaining = add(subtract(group(final_index), group(current_index)), literal(1))
     
     logic = if_func(
         less_than(current_month, primeira_fatura),
