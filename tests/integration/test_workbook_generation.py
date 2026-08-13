@@ -41,7 +41,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
 
     # Check exact columns for tblContas and tblCartoes
     contas_headers = [cell.value for cell in contas_ws[4] if cell.value]
-    assert contas_headers == ["Nome", "Tipo", "Instituição", "Saldo inicial", "Incluir no saldo disponível?", "Ativa?"]
+    assert contas_headers == ["Nome", "Tipo", "Instituição", "Saldo inicial", "Saldo atual", "Incluir no saldo disponível?", "Ativa?", "Status"]
 
     cartoes_headers = [cell.value for cell in cartoes_ws[6] if cell.value]
     assert cartoes_headers == ["Nome", "Limite", "Dia fechamento", "Dia vencimento", "Conta de pagamento", "Ativo?"]
@@ -75,18 +75,23 @@ def test_full_pipeline_light_and_dark(tmp_path):
     # Bug 1: Verify Dashboard formulas are written as formulas, not text
     dash_ws = wb["Dashboard"]
 
+    # Saldo Disponível Hoje
+    saldo_disponivel = dash_ws["B5"]
+    assert str(saldo_disponivel.value).startswith("=")
+    assert "SUMIFS(tblContas[Saldo atual]" in str(saldo_disponivel.value)
+
     # Resultado Registrado
-    saldo_cell = dash_ws["B5"]
+    saldo_cell = dash_ws["B8"]
     assert str(saldo_cell.value).startswith("=")
     assert "SUM(tblLancamentos[sys_Receita])" in str(saldo_cell.value)
 
     # Receitas Registradas
-    receita_cell = dash_ws["D5"]
+    receita_cell = dash_ws["D8"]
     assert str(receita_cell.value).startswith("=")
     assert "SUM(tblLancamentos[sys_Receita])" in str(receita_cell.value)
 
     # Despesas Registradas
-    despesa_cell = dash_ws["E5"]
+    despesa_cell = dash_ws["E8"]
     assert str(despesa_cell.value).startswith("=")
     assert "SUM(tblLancamentos[sys_Despesa])" in str(despesa_cell.value)
 
@@ -219,13 +224,15 @@ def test_empty_mode_tables(tmp_path):
     wb = openpyxl.load_workbook(path, data_only=False)
 
     # 1 row of headers, 1 row of blank data
-    assert wb["Contas"].tables["tblContas"].ref == "B4:G5"
+    assert wb["Contas"].tables["tblContas"].ref == "B4:I5"
     assert wb["Cartões"].tables["tblCartoes"].ref == "B6:G7"
 
     # Assert data validations exist for the blank row in empty mode
     contas_ws = wb["Contas"]
-    validations = contas_ws.data_validations.dataValidation
-    assert len(validations) > 0
+    cartoes_ws = wb["Cartões"]
+    # Verify validation is expanded
+    assert len(contas_ws.data_validations.dataValidation) > 0
+    assert len(cartoes_ws.data_validations.dataValidation) > 0
 
 def test_sample_mode_tables(tmp_path):
     output_dir = str(tmp_path)
@@ -235,8 +242,8 @@ def test_sample_mode_tables(tmp_path):
 
     contas_ws = wb["Contas"]
     contas_ref = contas_ws.tables["tblContas"].ref
-    # B4:G7 since default sample has 3 accounts (header + 3 data rows)
-    assert contas_ref == "B4:G7"
+    # B4:I7 since default sample has 3 accounts (header + 3 data rows)
+    assert contas_ref == "B4:I7"
 
     cartoes_ws = wb["Cartões"]
     cartoes_ref = cartoes_ws.tables["tblCartoes"].ref

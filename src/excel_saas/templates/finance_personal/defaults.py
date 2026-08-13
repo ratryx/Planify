@@ -8,9 +8,9 @@ DEFAULT_ACCOUNT_TYPES = [
 ]
 
 DEFAULT_ACCOUNTS_SAMPLE = [
-    ["Nubank", "Conta corrente", "Nubank", 5200.0, "Sim", "Sim"],
-    ["Reserva", "Poupança", "Itaú", 18000.0, "Não", "Sim"],
-    ["Dinheiro", "Dinheiro", "", 300.0, "Sim", "Sim"]
+    ["Nubank", "Conta corrente", "Nubank", 5200.0, None, "Sim", "Sim", None],
+    ["Reserva", "Poupança", "Itaú", 18000.0, None, "Não", "Sim", None],
+    ["Dinheiro", "Dinheiro", "", 300.0, None, "Sim", "Sim", None]
 ]
 
 DEFAULT_CARDS_SAMPLE = [

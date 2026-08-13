@@ -61,8 +61,8 @@ def func(name: str, *args) -> Expression:
     """Constructs an Excel function call."""
     return FuncExpr(name, *args)
 
-def sum_func(sum_range) -> Expression:
-    return func("SUM", sum_range)
+def sum_func(*args) -> Expression:
+    return func("SUM", *args)
 
 def sumifs(sum_range, *criteria_pairs) -> Expression:
     """
@@ -72,6 +72,15 @@ def sumifs(sum_range, *criteria_pairs) -> Expression:
         raise ValueError("SUMIFS requires an even number of criteria arguments.")
 
     return func("SUMIFS", sum_range, *criteria_pairs)
+
+def countifs(*criteria_pairs) -> Expression:
+    """
+    Constructs a COUNTIFS formula expression.
+    """
+    if len(criteria_pairs) % 2 != 0:
+        raise ValueError("COUNTIFS requires an even number of criteria arguments.")
+
+    return func("COUNTIFS", *criteria_pairs)
 
 def subtract(left, right) -> Expression:
     return BinaryExpr(left, "-", right)

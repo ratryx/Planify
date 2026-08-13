@@ -27,20 +27,30 @@ def build_comece_aqui(request: GenerationRequest) -> WorksheetPlan:
     )
 
 def build_dashboard(request: GenerationRequest) -> WorksheetPlan:
-    from excel_saas.core.excel.formulas import subtract, sum_func
+    from excel_saas.core.excel.formulas import subtract, sum_func, sumifs, literal
     from excel_saas.core.excel.references import TableRef
 
     sys_receita_ref = TableRef("tblLancamentos", "sys_Receita")
     sys_despesa_ref = TableRef("tblLancamentos", "sys_Despesa")
 
+    saldo_disponivel_formula = sumifs(
+        TableRef("tblContas", "Saldo atual"),
+        TableRef("tblContas", "Incluir no saldo disponível?"), literal("Sim"),
+        TableRef("tblContas", "Ativa?"), literal("Sim"),
+        TableRef("tblContas", "Status"), literal("OK")
+    )
+
     cells = [
         CellPlan(row=1, col=1, value="Dashboard Principal", role=CellRole.TITLE, size=16, bold=True),
-        CellPlan(row=3, col=1, value="Resultado Registrado", role=CellRole.HEADER),
-        CellPlan(row=4, col=1, formula=subtract(sum_func(sys_receita_ref), sum_func(sys_despesa_ref)), role=CellRole.FORMULA, number_format="R$ #,##0.00", size=14, bold=True),
-        CellPlan(row=3, col=3, value="Receitas Registradas", role=CellRole.HEADER),
-        CellPlan(row=4, col=3, formula=sum_func(sys_receita_ref), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
-        CellPlan(row=3, col=4, value="Despesas Registradas", role=CellRole.HEADER),
-        CellPlan(row=4, col=4, formula=sum_func(sys_despesa_ref), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
+        CellPlan(row=3, col=1, value="Saldo Disponível Hoje", role=CellRole.HEADER),
+        CellPlan(row=4, col=1, formula=saldo_disponivel_formula, role=CellRole.FORMULA, number_format="R$ #,##0.00", size=14, bold=True),
+
+        CellPlan(row=6, col=1, value="Resultado Registrado", role=CellRole.HEADER),
+        CellPlan(row=7, col=1, formula=subtract(sum_func(sys_receita_ref), sum_func(sys_despesa_ref)), role=CellRole.FORMULA, number_format="R$ #,##0.00", size=14, bold=True),
+        CellPlan(row=6, col=3, value="Receitas Registradas", role=CellRole.HEADER),
+        CellPlan(row=7, col=3, formula=sum_func(sys_receita_ref), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
+        CellPlan(row=6, col=4, value="Despesas Registradas", role=CellRole.HEADER),
+        CellPlan(row=7, col=4, formula=sum_func(sys_despesa_ref), role=CellRole.FORMULA, number_format="R$ #,##0.00", bold=True),
     ]
 
     return WorksheetPlan(

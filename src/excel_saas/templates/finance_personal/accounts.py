@@ -4,6 +4,51 @@ from excel_saas.core.models.cell_roles import CellRole
 from excel_saas.core.models.generation_request import GenerationRequest
 from excel_saas.core.excel.references import DefinedNameRef
 from .defaults import DEFAULT_ACCOUNTS_SAMPLE
+from excel_saas.core.excel.formulas import sum_func, if_func, isblank, literal, sumifs, greater_than, countifs, Expression
+from excel_saas.core.excel.references import ThisRowRef, TableRef
+
+def build_saldo_atual_formula() -> Expression:
+    nome = ThisRowRef("Nome")
+    saldo_inicial = ThisRowRef("Saldo inicial")
+    sys_caixa_conta = TableRef("tblLancamentos", "sys_CaixaConta")
+    sys_caixa_destino = TableRef("tblLancamentos", "sys_CaixaDestino")
+    lanc_conta = TableRef("tblLancamentos", "Conta")
+    lanc_conta_destino = TableRef("tblLancamentos", "Conta destino")
+
+    calc = sum_func(
+        saldo_inicial,
+        sumifs(sys_caixa_conta, lanc_conta, nome),
+        sumifs(sys_caixa_destino, lanc_conta_destino, nome)
+    )
+    return if_func(isblank(nome), literal(""), calc)
+
+def build_status_formula() -> Expression:
+    from excel_saas.core.excel.formulas import and_func
+
+    nome = ThisRowRef("Nome")
+    tipo = ThisRowRef("Tipo")
+    inst = ThisRowRef("Instituição")
+    saldo_ini = ThisRowRef("Saldo inicial")
+    incluir = ThisRowRef("Incluir no saldo disponível?")
+    ativa = ThisRowRef("Ativa?")
+
+    is_empty_row = and_func(
+        isblank(nome),
+        isblank(tipo),
+        isblank(inst),
+        isblank(saldo_ini),
+        isblank(incluir),
+        isblank(ativa)
+    )
+
+    tbl_nome_col = TableRef("tblContas", "Nome")
+    check_dupe = if_func(greater_than(countifs(tbl_nome_col, nome), literal(1)), literal("Nome duplicado"), literal("OK"))
+
+    return if_func(
+        is_empty_row,
+        literal(""),
+        if_func(isblank(nome), literal("Informe o nome"), check_dupe)
+    )
 
 def build_contas(request: GenerationRequest) -> WorksheetPlan:
     sim_nao_validation = DataValidationPlan(validate="list", source=["Sim", "Não"])
@@ -24,8 +69,10 @@ def build_contas(request: GenerationRequest) -> WorksheetPlan:
         ColumnPlan(header="Tipo", validation=tipo_validation, width=20),
         ColumnPlan(header="Instituição", width=20),
         ColumnPlan(header="Saldo inicial", number_format="R$ #,##0.00", validation=saldo_validation, width=15),
+        ColumnPlan(header="Saldo atual", formula=build_saldo_atual_formula(), role=CellRole.FORMULA, number_format="R$ #,##0.00", width=15),
         ColumnPlan(header="Incluir no saldo disponível?", validation=sim_nao_validation, width=28),
         ColumnPlan(header="Ativa?", validation=sim_nao_validation, width=12),
+        ColumnPlan(header="Status", formula=build_status_formula(), role=CellRole.FORMULA, width=20),
     ]
 
     data = DEFAULT_ACCOUNTS_SAMPLE if request.with_sample_data else []
