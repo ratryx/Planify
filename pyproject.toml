@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "excel-saas"
+version = "0.1.0"
+description = "Professional Excel workbook generation architecture"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "XlsxWriter>=3.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "openpyxl>=3.1.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/excel_saas"]
