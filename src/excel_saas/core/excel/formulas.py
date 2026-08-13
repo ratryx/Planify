@@ -100,6 +100,9 @@ def isnumber(value) -> Expression:
 def isblank(value) -> Expression:
     return func("ISBLANK", value)
 
+def int_func(value) -> Expression:
+    return func("INT", value)
+
 def and_func(*conditions) -> Expression:
     return func("AND", *conditions)
 
@@ -112,8 +115,14 @@ def not_func(condition) -> Expression:
 def greater_than(left, right) -> Expression:
     return BinaryExpr(left, ">", right)
 
+def less_than(left, right) -> Expression:
+    return BinaryExpr(left, "<", right)
+
 def greater_or_equal(left, right) -> Expression:
     return BinaryExpr(left, ">=", right)
+
+def less_or_equal(left, right) -> Expression:
+    return BinaryExpr(left, "<=", right)
 
 def not_equals(left, right) -> Expression:
     return BinaryExpr(left, "<>", right)

@@ -40,17 +40,11 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert "tblCartoes" in cartoes_ws.tables
 
     # Check exact columns for tblContas and tblCartoes
-    contas_headers = [cell.value for cell in contas_ws[4]]
-    assert "Nome" in contas_headers
-    assert "Tipo" in contas_headers
-    assert "Saldo inicial" in contas_headers
+    contas_headers = [cell.value for cell in contas_ws[4] if cell.value]
+    assert contas_headers == ["Nome", "Tipo", "Instituição", "Saldo inicial", "Incluir no saldo disponível?", "Ativa?"]
 
-    cartoes_headers = [cell.value for cell in cartoes_ws[6]]
-    assert "Nome" in cartoes_headers
-    assert "Limite" in cartoes_headers
-    assert "Dia fechamento" in cartoes_headers
-    assert "Dia vencimento" in cartoes_headers
-    assert "Conta de pagamento" in cartoes_headers
+    cartoes_headers = [cell.value for cell in cartoes_ws[6] if cell.value]
+    assert cartoes_headers == ["Nome", "Limite", "Dia fechamento", "Dia vencimento", "Conta de pagamento", "Ativo?"]
 
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
@@ -152,6 +146,8 @@ def test_full_pipeline_light_and_dark(tmp_path):
     conta_val = None
     conta_dest_val = None
     cartao_val = None
+    valor_val = None
+    parcelas_val = None
 
     for val in ws.data_validations.dataValidation:
         sqref = val.sqref.__str__()
@@ -163,11 +159,27 @@ def test_full_pipeline_light_and_dark(tmp_path):
             conta_dest_val = val
         elif "H" in sqref:
             cartao_val = val
+        elif "I" in sqref:
+            valor_val = val
+        elif "J" in sqref:
+            parcelas_val = val
 
     assert categoria_val is not None and "lista_categorias" in categoria_val.formula1
     assert conta_val is not None and "lista_contas" in conta_val.formula1
     assert conta_dest_val is not None and "lista_contas" in conta_dest_val.formula1
     assert cartao_val is not None and "lista_cartoes" in cartao_val.formula1
+
+    assert valor_val is not None
+    assert valor_val.type == "decimal"
+    assert valor_val.operator == "greaterThan"
+    assert "0" in valor_val.formula1
+    assert valor_val.allowBlank is True
+
+    assert parcelas_val is not None
+    assert parcelas_val.type == "whole"
+    assert parcelas_val.operator == "greaterThanOrEqual"
+    assert "1" in parcelas_val.formula1
+    assert parcelas_val.allowBlank is True
 
     req_dark = GenerationRequest(template_id="finance_personal", year=2026, theme="dark")
     path_dark = generate(req_dark, output_dir)

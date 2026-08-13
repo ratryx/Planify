@@ -98,7 +98,7 @@ def build_lancamentos(request: GenerationRequest) -> WorksheetPlan:
         ColumnPlan(header="Parcelas", validation=parcelas_validation, width=10),
         ColumnPlan(header="Essencial?", validation=sim_nao_validation, width=12),
         ColumnPlan(header="Recorrente?", validation=sim_nao_validation, width=12),
-        ColumnPlan(header="Status", formula=build_status_formula(), width=25),
+        ColumnPlan(header="Status", formula=build_status_formula(), role=CellRole.FORMULA, width=25),
         ColumnPlan(header="Observação", width=25),
         ColumnPlan(header="sys_Receita", formula=build_sys_receita(), hidden=True),
         ColumnPlan(header="sys_Despesa", formula=build_sys_despesa(), hidden=True),
