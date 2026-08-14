@@ -6,8 +6,8 @@ from excel_saas.templates.finance_personal.lancamentos_semantics import (
     build_is_valid_transaction
 )
 
-def test_semantic_builders_do_not_rely_on_status_column():
-    """Ensure that the financial logic does not rely on the literal Status column."""
+def test_semantic_builders_rely_on_status_column():
+    """Ensure that the financial logic relies on the literal Status column."""
     formulas = [
         build_sys_receita(),
         build_sys_despesa(),
@@ -18,21 +18,31 @@ def test_semantic_builders_do_not_rely_on_status_column():
         build_sys_cartao()
     ]
     
+    forbidden_strings = [
+        "Informe o valor",
+        "Valor inválido",
+        "Valor deve ser maior que zero",
+        "Informe conta ou cartão",
+        "Use conta ou cartão, não ambos"
+    ]
+    
     for expr in formulas:
         f_str = str(expr)
-        # Should NOT use [@Status] or [@[Status]]
-        assert "[@Status]" not in f_str
-        assert "[@[Status]]" not in f_str
+        # Should use [@Status] for constant-time validity check
+        assert "[@Status]" in f_str
+        
+        # Should NOT embed the old AST validations
+        for forbidden in forbidden_strings:
+            assert forbidden not in f_str
 
 def test_is_valid_transaction_structure():
-    """Ensure build_is_valid_transaction uses the full logic from Status."""
+    """Ensure build_is_valid_transaction uses direct Status reference."""
     expr = build_is_valid_transaction()
     f_str = str(expr)
     
-    # It should check if the main nested status formula equals "OK"
-    assert '="OK"' in f_str
-    assert "ISBLANK([@Tipo])" in f_str
-    assert "ISBLANK([@Conta])" in f_str
+    # It should check if the precalculated Status column equals "OK"
+    assert f_str == '([@Status]="OK")' or '[@Status]="OK"' in f_str
+    assert "ISBLANK([@Tipo])" not in f_str
 
 def test_sys_valor_parcela_safety():
     """sys_ValorParcela should guard against invalid parcelas."""

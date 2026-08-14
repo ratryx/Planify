@@ -89,7 +89,7 @@ def build_status_formula() -> Expression:
     return if_func(is_empty_row, literal(""), main_logic)
 
 def build_is_valid_transaction() -> Expression:
-    return equals(build_status_formula(), literal("OK"))
+    return equals(ThisRowRef("Status"), literal("OK"))
 
 def build_sys_receita() -> Expression:
     return if_func(not_func(build_is_valid_transaction()), literal(0),
@@ -142,7 +142,7 @@ def build_status_fatura() -> Expression:
     )
     from excel_saas.core.excel.references import TableRef
 
-    tx_invalid = not_func(build_is_valid_transaction())
+    tx_invalid = not_equals(ThisRowRef("Status"), literal("OK"))
 
     card_count = countifs(TableRef("tblCartoes", "Nome"), cartao)
     card_unregistered = equals(card_count, literal(0))

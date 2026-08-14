@@ -83,8 +83,8 @@ def test_fechamento_formula():
     formula = _val(expr)
     
     assert "MIN(" in formula
-    assert "DAY(EOMONTH([@sys_CompetenciaNormalizada],0))" in formula
-    assert "DATE(YEAR([@sys_CompetenciaNormalizada]),MONTH([@sys_CompetenciaNormalizada])" in formula
+    assert "DAY(EOMONTH([@[sys_CompetenciaNormalizada]],0))" in formula
+    assert "DATE(YEAR([@[sys_CompetenciaNormalizada]]),MONTH([@[sys_CompetenciaNormalizada]])" in formula
 
 def test_vencimento_formula():
     expr = build_vencimento()
@@ -94,7 +94,7 @@ def test_vencimento_formula():
     assert "SUMIFS(tblCartoes[sys_DiaVencimentoSeguro],tblCartoes[Nome],[@Cartão])>SUMIFS(tblCartoes[sys_DiaFechamentoSeguro],tblCartoes[Nome],[@Cartão])" in formula
     
     # Check EDATE protection against > 120000
-    assert "YEAR([@sys_CompetenciaNormalizada])*12+MONTH([@sys_CompetenciaNormalizada])+1<=120000" in formula
+    assert "YEAR([@[sys_CompetenciaNormalizada]])*12+MONTH([@[sys_CompetenciaNormalizada]])+1<=120000" in formula
 
 def test_compras_aggregation():
     expr = build_compras()
@@ -107,8 +107,8 @@ def test_compras_aggregation():
     assert "tblLancamentos[Cartão]" in formula
     
     # Concat formatting
-    assert '"<="&[@sys_CompetenciaNormalizada]' in formula
-    assert '">="&[@sys_CompetenciaNormalizada]' in formula
+    assert '"<="&[@[sys_CompetenciaNormalizada]]' in formula
+    assert '">="&[@[sys_CompetenciaNormalizada]]' in formula
     
     assert "tblLancamentos[sys_ValorParcela]" not in formula
 
@@ -116,7 +116,7 @@ def test_creditos_pagamentos_aggregation():
     creditos = _val(build_creditos())
     assert "tblLancamentos[sys_CreditoFatura]" in creditos
     assert "tblLancamentos[sys_CompetenciaEfetiva]" in creditos
-    assert "[@sys_CompetenciaNormalizada]" in creditos
+    assert "[@[sys_CompetenciaNormalizada]]" in creditos
     
     pagamentos = _val(build_pagamentos())
     assert "tblLancamentos[sys_PagamentoFatura]" in pagamentos

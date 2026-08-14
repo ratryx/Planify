@@ -20,7 +20,7 @@ def test_sys_indice_lancamento():
     assert 'tblLancamentos[sys_ParcelasEfetivas]>1' in f
     assert 'tblLancamentos[sys_FaturaInicial]<>""' in f
     assert 'tblLancamentos[sys_FaturaFinal]<>""' in f
-    assert '[@sys_Ordem]' in f
+    assert '[@[sys_Ordem]]' in f
     assert 'IFERROR(' in f
     assert 'tblLancamentos[Status]' not in f
     assert 'tblLancamentos[Status fatura]' not in f
@@ -42,8 +42,8 @@ def test_source_projection():
     for col in columns:
         expr = build_projected_column(col)
         f = str(Formula(expr))
-        assert f'INDEX(tblLancamentos[{col}],[@sys_IndiceLancamento])' in f
-        assert 'IF([@sys_IndiceLancamento]="","",' in f
+        assert f'INDEX(tblLancamentos[{col}],[@[sys_IndiceLancamento]])' in f
+        assert 'IF([@[sys_IndiceLancamento]]="","",' in f
 
 def test_current_month():
     f1 = str(Formula(build_parcelas_restantes()))
@@ -71,7 +71,7 @@ def test_remaining_month():
 def test_commitment():
     f = str(Formula(build_compromisso_restante()))
     assert '[@[Parcelas restantes]]*[@[Valor da parcela]]' in f
-    assert '+[@sys_AjusteUltimaParcela]' in f
+    assert '+[@[sys_AjusteUltimaParcela]]' in f
 
 def test_lifecycle():
     f = str(Formula(build_situacao()))

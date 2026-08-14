@@ -124,7 +124,11 @@ class WorkbookEngine:
                     f_str = str(cell.formula)
                     if not f_str.startswith('='):
                         f_str = f"={f_str}"
-                    worksheet.write_formula(cell.row, cell.col, f_str, fmt, cell.value)
+                    if cell.value is not None:
+                        worksheet.write_formula(cell.row, cell.col, f_str, fmt, cell.value)
+                    else:
+                        worksheet.write_formula(cell.row, cell.col, f_str, fmt)
+
                 else:
                     # Raw strings should NEVER become formulas
                     worksheet.write_string(cell.row, cell.col, str(cell.formula), fmt)

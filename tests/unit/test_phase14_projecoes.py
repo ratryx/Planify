@@ -23,7 +23,7 @@ def test_effective_horizon():
 
 def test_competence_formula():
     f = str(Formula(build_competencia()))
-    assert f == "=EDATE(DATE(YEAR(TODAY()),MONTH(TODAY()),1),[@sys_Offset]+1)"
+    assert f == "=EDATE(DATE(YEAR(TODAY()),MONTH(TODAY()),1),[@[sys_Offset]]+1)"
     assert "request.year" not in f
 
 def test_budget_formula():

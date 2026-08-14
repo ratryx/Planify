@@ -24,10 +24,9 @@ class ThisRowRef(Reference):
         self.column = column
 
     def __str__(self) -> str:
-        # If the column has spaces or special characters, Excel requires [@[Column Name]]
-        # For safety, we can just always wrap the inner part in brackets if it has non-alphanumeric (excluding underscore)
+        # If the column has spaces or special characters (including underscore), Excel requires [@[Column Name]]
         import re
-        if not re.match(r'^[\w]+$', self.column):
+        if "_" in self.column or not re.match(r'^[\w]+$', self.column):
             return f"[@[{self.column}]]"
         return f"[@{self.column}]"
 
