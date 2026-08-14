@@ -30,6 +30,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Dashboard Investimentos",
         "Patrimônio",
         "Dashboard Patrimônio",
+        "Dívidas",
         "Configurações"
     ]
 
@@ -628,6 +629,82 @@ def test_full_pipeline_light_and_dark(tmp_path):
 
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
+
+    # Phase 13: Check Dívidas
+    dividas_ws = wb["Dívidas"]
+    assert dividas_ws.protection.sheet is False
+
+    assert "tblDividas" in dividas_ws.tables
+    table_dividas = dividas_ws.tables["tblDividas"]
+    assert table_dividas.ref == "B4:K5"
+    
+    dividas_headers = [cell.value for cell in dividas_ws[4] if cell.value]
+    assert dividas_headers == [
+        "Dívida", "Categoria", "Credor", "Saldo devedor atual",
+        "Parcela mensal atual", "Data final", "Observação",
+        "Status", "sys_SaldoDevedorValido", "sys_ParcelaMensalValida"
+    ]
+
+    for col in ["B", "C", "D", "E", "F", "G", "H"]:
+        cell = dividas_ws[f"{col}5"]
+        assert not str(cell.value).startswith("=")
+
+    for col in ["I", "J", "K"]:
+        cell = dividas_ws[f"{col}5"]
+        assert str(cell.value).startswith("=")
+        assert cell.data_type == "f"
+
+    cat_val_dividas = None
+    saldo_val_dividas = None
+    parcela_val_dividas = None
+    data_val_dividas = None
+    
+    for val in dividas_ws.data_validations.dataValidation:
+        sqref = val.sqref.__str__()
+        if "C" in sqref:
+            cat_val_dividas = val
+        elif "E" in sqref:
+            saldo_val_dividas = val
+        elif "F" in sqref:
+            parcela_val_dividas = val
+        elif "G" in sqref:
+            data_val_dividas = val
+            
+    assert cat_val_dividas is not None
+    assert cat_val_dividas.type == "list"
+    assert '"Financiamento imobiliário' in cat_val_dividas.formula1
+    assert 'Outros"' in cat_val_dividas.formula1
+
+    assert saldo_val_dividas is not None
+    assert saldo_val_dividas.type == "decimal"
+    assert saldo_val_dividas.operator == "greaterThan"
+    assert "0" in saldo_val_dividas.formula1
+    
+    assert parcela_val_dividas is not None
+    assert parcela_val_dividas.type == "decimal"
+    assert parcela_val_dividas.operator == "greaterThanOrEqual"
+    assert "0" in parcela_val_dividas.formula1
+    
+    assert data_val_dividas is not None
+    assert data_val_dividas.type == "date"
+    assert data_val_dividas.operator in ("between", None)
+    assert "1" in data_val_dividas.formula1
+    assert "2958465" in data_val_dividas.formula2
+
+    assert "R$" in dividas_ws["E5"].number_format or dividas_ws["E5"].number_format == "General"
+    assert "R$" in dividas_ws["F5"].number_format or dividas_ws["F5"].number_format == "General"
+    assert "R$" in dividas_ws["J5"].number_format or dividas_ws["J5"].number_format == "General"
+    assert "R$" in dividas_ws["K5"].number_format or dividas_ws["K5"].number_format == "General"
+
+    target_hidden_cols_dividas = {column_index_from_string("J"), column_index_from_string("K")}
+    covered_hidden_div = set()
+    for _, col_dim in dividas_ws.column_dimensions.items():
+        if getattr(col_dim, "hidden", False):
+            for idx in range(col_dim.min, col_dim.max + 1):
+                covered_hidden_div.add(idx)
+
+    for col_idx in target_hidden_cols_dividas:
+        assert col_idx in covered_hidden_div
     assert "tblTiposConta" in config_ws.tables
     assert "tblContas" not in config_ws.tables
     assert "tblCartoes" not in config_ws.tables
@@ -851,6 +928,20 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert "tblResumoPatrimonio" in ws_dash_pat_dark.tables
     assert ws_dash_pat_dark.tables["tblResumoPatrimonio"].ref == "B11:D14"
     assert ws_dash_pat_dark.protection.sheet is True
+    
+    # Phase 13: Dark structural regression check for Dívidas
+    assert "Dívidas" in wb_dark.sheetnames
+    ws_dividas_dark = wb_dark["Dívidas"]
+    assert "tblDividas" in ws_dividas_dark.tables
+    assert ws_dividas_dark.tables["tblDividas"].ref == "B4:K5"
+    
+    covered_hidden_div_dark = set()
+    for _, col_dim in ws_dividas_dark.column_dimensions.items():
+        if getattr(col_dim, "hidden", False):
+            for idx in range(col_dim.min, col_dim.max + 1):
+                covered_hidden_div_dark.add(idx)
+    assert column_index_from_string("J") in covered_hidden_div_dark
+    assert column_index_from_string("K") in covered_hidden_div_dark
 
 def test_literal_string_starts_with_equal(tmp_path):
     from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan
