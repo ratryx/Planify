@@ -26,6 +26,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Orçamento",
         "Metas",
         "Reserva",
+        "Investimentos",
         "Configurações"
     ]
 
@@ -414,6 +415,83 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert reserva_ws["C5"].value == 6
     assert reserva_ws["D5"].value is None
 
+    # Phase 9: Check Investimentos table
+    investimentos_ws = wb["Investimentos"]
+    assert "tblInvestimentos" in investimentos_ws.tables
+    
+    table_investimentos = investimentos_ws.tables["tblInvestimentos"]
+    assert table_investimentos.ref == "B4:O5"
+    
+    invest_headers = [cell.value for cell in investimentos_ws[4] if cell.value]
+    assert invest_headers == [
+        "Ativo", "Classe", "Instituição", "Total aportado", "Total recebido", "Valor atual",
+        "Resultado total", "Retorno simples %", "Peso carteira %", "Status", "Situação",
+        "sys_AporteValido", "sys_RecebidoValido", "sys_ValorAtualValido"
+    ]
+    
+    for col in ["H", "I", "J", "K", "L", "M", "N", "O"]:
+        cell = investimentos_ws[f"{col}5"]
+        assert str(cell.value).startswith("=")
+        assert cell.data_type == "f"
+        
+    for col in ["B", "C", "D", "E", "F", "G"]:
+        cell = investimentos_ws[f"{col}5"]
+        assert not str(cell.value).startswith("=")
+        
+    classe_val = None
+    aportado_val = None
+    recebido_val = None
+    atual_val = None
+    for val in investimentos_ws.data_validations.dataValidation:
+        sqref = val.sqref.__str__()
+        if "C" in sqref:
+            classe_val = val
+        elif "E" in sqref:
+            aportado_val = val
+        elif "F" in sqref:
+            recebido_val = val
+        elif "G" in sqref:
+            atual_val = val
+            
+    assert classe_val is not None
+    assert classe_val.type == "list"
+    assert '"Renda fixa' in classe_val.formula1
+    
+    assert aportado_val is not None
+    assert aportado_val.type == "decimal"
+    assert aportado_val.operator == "greaterThan"
+    assert "0" in aportado_val.formula1
+    
+    assert recebido_val is not None
+    assert recebido_val.type == "decimal"
+    assert recebido_val.operator == "greaterThanOrEqual"
+    assert "0" in recebido_val.formula1
+    
+    assert atual_val is not None
+    assert atual_val.type == "decimal"
+    assert atual_val.operator == "greaterThanOrEqual"
+    assert "0" in atual_val.formula1
+    
+    assert "R$" in investimentos_ws["E5"].number_format or investimentos_ws["E5"].number_format == "General"
+    assert "R$" in investimentos_ws["F5"].number_format or investimentos_ws["F5"].number_format == "General"
+    assert "R$" in investimentos_ws["G5"].number_format or investimentos_ws["G5"].number_format == "General"
+    assert "R$" in investimentos_ws["H5"].number_format or investimentos_ws["H5"].number_format == "General"
+    assert "0.0%" in investimentos_ws["I5"].number_format or investimentos_ws["I5"].number_format == "General"
+    assert "0.0%" in investimentos_ws["J5"].number_format or investimentos_ws["J5"].number_format == "General"
+    
+    assert investimentos_ws.protection.sheet is False
+
+    from openpyxl.utils import column_index_from_string
+    target_hidden_cols = {column_index_from_string("M"), column_index_from_string("N"), column_index_from_string("O")}
+    covered_hidden_inv = set()
+    for _, col_dim in investimentos_ws.column_dimensions.items():
+        if getattr(col_dim, "hidden", False):
+            for idx in range(col_dim.min, col_dim.max + 1):
+                covered_hidden_inv.add(idx)
+                
+    for col_idx in target_hidden_cols:
+        assert col_idx in covered_hidden_inv
+
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
     assert "tblTiposConta" in config_ws.tables
@@ -607,6 +685,12 @@ def test_full_pipeline_light_and_dark(tmp_path):
     ws_reserva_dark = wb_dark["Reserva"]
     assert "tblReserva" in ws_reserva_dark.tables
     assert ws_reserva_dark.tables["tblReserva"].ref == "B4:J5"
+
+    # Phase 9: Dark structural regression check for Investimentos
+    assert "Investimentos" in wb_dark.sheetnames
+    ws_invest_dark = wb_dark["Investimentos"]
+    assert "tblInvestimentos" in ws_invest_dark.tables
+    assert ws_invest_dark.tables["tblInvestimentos"].ref == "B4:O5"
 
 def test_literal_string_starts_with_equal(tmp_path):
     from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan
