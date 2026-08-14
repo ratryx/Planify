@@ -633,6 +633,10 @@ def test_full_pipeline_light_and_dark(tmp_path):
     # Phase 13: Check Dívidas
     dividas_ws = wb["Dívidas"]
     assert dividas_ws.protection.sheet is False
+    assert dividas_ws.freeze_panes == "B5"
+
+    assert dividas_ws["B2"].value == "Dívidas"
+    assert dividas_ws["B3"].value == "Cadastre empréstimos, financiamentos e outras dívidas contratuais. Não repita faturas, compras parceladas ou saldos negativos já registrados em outras abas."
 
     assert "tblDividas" in dividas_ws.tables
     table_dividas = dividas_ws.tables["tblDividas"]
@@ -672,29 +676,30 @@ def test_full_pipeline_light_and_dark(tmp_path):
             
     assert cat_val_dividas is not None
     assert cat_val_dividas.type == "list"
-    assert '"Financiamento imobiliário' in cat_val_dividas.formula1
-    assert 'Outros"' in cat_val_dividas.formula1
+    assert cat_val_dividas.formula1 == '"Financiamento imobiliário,Financiamento de veículo,Empréstimo pessoal,Consignado,Dívida tributária,Dívida com pessoa,Outros"'
 
     assert saldo_val_dividas is not None
     assert saldo_val_dividas.type == "decimal"
     assert saldo_val_dividas.operator == "greaterThan"
-    assert "0" in saldo_val_dividas.formula1
+    assert saldo_val_dividas.formula1 == "0"
     
     assert parcela_val_dividas is not None
     assert parcela_val_dividas.type == "decimal"
     assert parcela_val_dividas.operator == "greaterThanOrEqual"
-    assert "0" in parcela_val_dividas.formula1
+    assert parcela_val_dividas.formula1 == "0"
     
     assert data_val_dividas is not None
     assert data_val_dividas.type == "date"
-    assert data_val_dividas.operator in ("between", None)
-    assert "1" in data_val_dividas.formula1
-    assert "2958465" in data_val_dividas.formula2
+    if data_val_dividas.operator is None:
+        data_val_dividas.operator = "between"
+    assert data_val_dividas.operator == "between"
+    assert data_val_dividas.formula1 == "1"
+    assert data_val_dividas.formula2 == "2958465"
 
-    assert "R$" in dividas_ws["E5"].number_format or dividas_ws["E5"].number_format == "General"
-    assert "R$" in dividas_ws["F5"].number_format or dividas_ws["F5"].number_format == "General"
-    assert "R$" in dividas_ws["J5"].number_format or dividas_ws["J5"].number_format == "General"
-    assert "R$" in dividas_ws["K5"].number_format or dividas_ws["K5"].number_format == "General"
+    assert dividas_ws["E5"].number_format == "R$ #,##0.00"
+    assert dividas_ws["F5"].number_format == "R$ #,##0.00"
+    assert dividas_ws["J5"].number_format == "R$ #,##0.00"
+    assert dividas_ws["K5"].number_format == "R$ #,##0.00"
 
     target_hidden_cols_dividas = {column_index_from_string("J"), column_index_from_string("K")}
     covered_hidden_div = set()

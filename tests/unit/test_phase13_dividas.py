@@ -4,6 +4,7 @@ from excel_saas.core.models.cell_roles import CellRole
 from excel_saas.templates.finance_personal.dividas_semantics import (
     CATEGORIAS_DIVIDAS,
     _build_is_valid_debt,
+    _build_is_valid_date,
     build_status,
     build_sys_saldo_devedor_valido,
     build_sys_parcela_mensal_valida
@@ -11,53 +12,43 @@ from excel_saas.templates.finance_personal.dividas_semantics import (
 from excel_saas.templates.finance_personal.dividas import build_dividas_sheet
 
 def test_category_model():
-    assert len(CATEGORIAS_DIVIDAS) == 7
-    assert "Financiamento imobiliário" in CATEGORIAS_DIVIDAS
-    assert "Financiamento de veículo" in CATEGORIAS_DIVIDAS
-    assert "Empréstimo pessoal" in CATEGORIAS_DIVIDAS
-    assert "Consignado" in CATEGORIAS_DIVIDAS
-    assert "Dívida tributária" in CATEGORIAS_DIVIDAS
-    assert "Dívida com pessoa" in CATEGORIAS_DIVIDAS
-    assert "Outros" in CATEGORIAS_DIVIDAS
+    assert CATEGORIAS_DIVIDAS == [
+        "Financiamento imobiliário",
+        "Financiamento de veículo",
+        "Empréstimo pessoal",
+        "Consignado",
+        "Dívida tributária",
+        "Dívida com pessoa",
+        "Outros",
+    ]
     
     assert "Cartão de crédito" not in CATEGORIAS_DIVIDAS
 
+def test_safe_date_predicate():
+    from excel_saas.core.excel.references import ThisRowRef
+    f = str(Formula(_build_is_valid_date(ThisRowRef("Data final"))))
+    assert f == '=AND(ISNUMBER([@[Data final]]),[@[Data final]]>=1,[@[Data final]]<DATE(9999,12,31)+1)'
+    assert 'TODAY' not in f
+
 def test_status_precedence():
     f = str(Formula(build_status()))
-    assert 'COUNTIFS(tblDividas[Dívida],[@Dívida])>1' in f
-    assert '"Dívida duplicada"' in f
-    
-    assert '"Informe a dívida"' in f
-    assert '"Informe a categoria"' in f
-    assert '"Categoria inválida"' in f
-    assert '"Informe o saldo devedor"' in f
-    assert '"Saldo devedor inválido"' in f
-    assert '"Parcela mensal inválida"' in f
-    assert '"Data final inválida"' in f
-    assert '"OK"' in f
+    assert f == '=IF(AND(ISBLANK([@Dívida]),ISBLANK([@Categoria]),ISBLANK([@Credor]),ISBLANK([@[Saldo devedor atual]]),ISBLANK([@[Parcela mensal atual]]),ISBLANK([@[Data final]]),ISBLANK([@Observação])),"",IF(ISBLANK([@Dívida]),"Informe a dívida",IF(ISBLANK([@Categoria]),"Informe a categoria",IF(NOT(OR([@Categoria]="Financiamento imobiliário",[@Categoria]="Financiamento de veículo",[@Categoria]="Empréstimo pessoal",[@Categoria]="Consignado",[@Categoria]="Dívida tributária",[@Categoria]="Dívida com pessoa",[@Categoria]="Outros")),"Categoria inválida",IF(COUNTIFS(tblDividas[Dívida],[@Dívida])>1,"Dívida duplicada",IF(ISBLANK([@[Saldo devedor atual]]),"Informe o saldo devedor",IF(OR(NOT(ISNUMBER([@[Saldo devedor atual]])),[@[Saldo devedor atual]]<=0),"Saldo devedor inválido",IF(AND(NOT(ISBLANK([@[Parcela mensal atual]])),OR(NOT(ISNUMBER([@[Parcela mensal atual]])),[@[Parcela mensal atual]]<0)),"Parcela mensal inválida",IF(AND(NOT(ISBLANK([@[Data final]])),NOT(AND(ISNUMBER([@[Data final]]),[@[Data final]]>=1,[@[Data final]]<DATE(9999,12,31)+1))),"Data final inválida","OK")))))))))'
     assert '[@Status]' not in f
 
 def test_is_valid_debt():
     f = str(Formula(_build_is_valid_debt()))
-    assert 'NOT(ISBLANK([@Dívida]))' in f
-    assert '[@Categoria]="Financiamento imobiliário"' in f
-    assert 'COUNTIFS(tblDividas[Dívida],[@Dívida])=1' in f
-    assert 'AND(NOT(ISBLANK([@[Saldo devedor atual]])),ISNUMBER([@[Saldo devedor atual]]),[@[Saldo devedor atual]]>0)' in f
-    assert 'OR(ISBLANK([@[Parcela mensal atual]]),AND(ISNUMBER([@[Parcela mensal atual]]),[@[Parcela mensal atual]]>=0))' in f
-    assert 'OR(ISBLANK([@[Data final]]),AND(ISNUMBER([@[Data final]]),[@[Data final]]>=1,[@[Data final]]<DATE(9999,12,31)+1))' in f
+    assert f == '=AND(NOT(ISBLANK([@Dívida])),OR([@Categoria]="Financiamento imobiliário",[@Categoria]="Financiamento de veículo",[@Categoria]="Empréstimo pessoal",[@Categoria]="Consignado",[@Categoria]="Dívida tributária",[@Categoria]="Dívida com pessoa",[@Categoria]="Outros"),COUNTIFS(tblDividas[Dívida],[@Dívida])=1,AND(NOT(ISBLANK([@[Saldo devedor atual]])),ISNUMBER([@[Saldo devedor atual]]),[@[Saldo devedor atual]]>0),OR(ISBLANK([@[Parcela mensal atual]]),AND(ISNUMBER([@[Parcela mensal atual]]),[@[Parcela mensal atual]]>=0)),OR(ISBLANK([@[Data final]]),AND(ISNUMBER([@[Data final]]),[@[Data final]]>=1,[@[Data final]]<DATE(9999,12,31)+1)))'
     assert '[@Status]' not in f
 
 def test_valid_balance_helper():
     f = str(Formula(build_sys_saldo_devedor_valido()))
-    assert 'IF(AND(NOT(ISBLANK([@Dívida]))' in f
-    assert '[@[Saldo devedor atual]]' in f
-    assert ',0)' in f
+    assert f == '=IF(AND(NOT(ISBLANK([@Dívida])),OR([@Categoria]="Financiamento imobiliário",[@Categoria]="Financiamento de veículo",[@Categoria]="Empréstimo pessoal",[@Categoria]="Consignado",[@Categoria]="Dívida tributária",[@Categoria]="Dívida com pessoa",[@Categoria]="Outros"),COUNTIFS(tblDividas[Dívida],[@Dívida])=1,AND(NOT(ISBLANK([@[Saldo devedor atual]])),ISNUMBER([@[Saldo devedor atual]]),[@[Saldo devedor atual]]>0),OR(ISBLANK([@[Parcela mensal atual]]),AND(ISNUMBER([@[Parcela mensal atual]]),[@[Parcela mensal atual]]>=0)),OR(ISBLANK([@[Data final]]),AND(ISNUMBER([@[Data final]]),[@[Data final]]>=1,[@[Data final]]<DATE(9999,12,31)+1))),[@[Saldo devedor atual]],0)'
+    assert '[@Status]' not in f
 
 def test_valid_installment_helper():
     f = str(Formula(build_sys_parcela_mensal_valida()))
-    assert 'IF(AND(NOT(ISBLANK([@Dívida]))' in f
-    assert 'IF(ISBLANK([@[Parcela mensal atual]]),0,[@[Parcela mensal atual]])' in f
-    assert ',0)' in f
+    assert f == '=IF(AND(NOT(ISBLANK([@Dívida])),OR([@Categoria]="Financiamento imobiliário",[@Categoria]="Financiamento de veículo",[@Categoria]="Empréstimo pessoal",[@Categoria]="Consignado",[@Categoria]="Dívida tributária",[@Categoria]="Dívida com pessoa",[@Categoria]="Outros"),COUNTIFS(tblDividas[Dívida],[@Dívida])=1,AND(NOT(ISBLANK([@[Saldo devedor atual]])),ISNUMBER([@[Saldo devedor atual]]),[@[Saldo devedor atual]]>0),OR(ISBLANK([@[Parcela mensal atual]]),AND(ISNUMBER([@[Parcela mensal atual]]),[@[Parcela mensal atual]]>=0)),OR(ISBLANK([@[Data final]]),AND(ISNUMBER([@[Data final]]),[@[Data final]]>=1,[@[Data final]]<DATE(9999,12,31)+1))),IF(ISBLANK([@[Parcela mensal atual]]),0,[@[Parcela mensal atual]]),0)'
+    assert '[@Status]' not in f
 
 def test_table_plan():
     sheet = build_dividas_sheet()
