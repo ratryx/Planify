@@ -677,24 +677,26 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert cat_val_dividas is not None
     assert cat_val_dividas.type == "list"
     assert cat_val_dividas.formula1 == '"Financiamento imobiliário,Financiamento de veículo,Empréstimo pessoal,Consignado,Dívida tributária,Dívida com pessoa,Outros"'
+    assert cat_val_dividas.allowBlank is True
 
     assert saldo_val_dividas is not None
     assert saldo_val_dividas.type == "decimal"
     assert saldo_val_dividas.operator == "greaterThan"
     assert saldo_val_dividas.formula1 == "0"
+    assert saldo_val_dividas.allowBlank is True
     
     assert parcela_val_dividas is not None
     assert parcela_val_dividas.type == "decimal"
     assert parcela_val_dividas.operator == "greaterThanOrEqual"
     assert parcela_val_dividas.formula1 == "0"
+    assert parcela_val_dividas.allowBlank is True
     
     assert data_val_dividas is not None
     assert data_val_dividas.type == "date"
-    if data_val_dividas.operator is None:
-        data_val_dividas.operator = "between"
-    assert data_val_dividas.operator == "between"
+    assert data_val_dividas.operator in (None, "between")
     assert data_val_dividas.formula1 == "1"
     assert data_val_dividas.formula2 == "2958465"
+    assert data_val_dividas.allowBlank is True
 
     assert dividas_ws["E5"].number_format == "R$ #,##0.00"
     assert dividas_ws["F5"].number_format == "R$ #,##0.00"

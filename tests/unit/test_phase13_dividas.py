@@ -77,6 +77,33 @@ def test_table_plan():
     assert table.columns[8].hidden is True
     assert table.columns[9].hidden is True
 
+    cat_col = table.columns[1]
+    assert cat_col.validation is not None
+    assert cat_col.validation.validate == "list"
+    assert cat_col.validation.ignore_blank is True
+
+    saldo_col = table.columns[3]
+    assert saldo_col.validation is not None
+    assert saldo_col.validation.validate == "decimal"
+    assert saldo_col.validation.criteria == ">"
+    assert saldo_col.validation.minimum == 0
+    assert saldo_col.validation.ignore_blank is True
+
+    parcela_col = table.columns[4]
+    assert parcela_col.validation is not None
+    assert parcela_col.validation.validate == "decimal"
+    assert parcela_col.validation.criteria == ">="
+    assert parcela_col.validation.minimum == 0
+    assert parcela_col.validation.ignore_blank is True
+
+    data_col = table.columns[5]
+    assert data_col.validation is not None
+    assert data_col.validation.validate == "date"
+    assert data_col.validation.criteria == "between"
+    assert data_col.validation.minimum == 1
+    assert data_col.validation.maximum == 2958465
+    assert data_col.validation.ignore_blank is True
+
 def test_domain_isolation():
     f1 = str(Formula(_build_is_valid_debt()))
     f2 = str(Formula(build_status()))
