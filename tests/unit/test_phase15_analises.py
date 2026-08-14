@@ -15,6 +15,7 @@ from excel_saas.templates.finance_personal.analises_semantics import (
 )
 from excel_saas.templates.finance_personal.analises import build_analises_sheet
 from excel_saas.core.excel.formulas import Expression
+from excel_saas.core.models.cell_roles import CellRole
 
 def test_gross_assets_semantics():
     from excel_saas.templates.finance_personal.dashboard_patrimonio_semantics import build_total_assets as base_assets
@@ -89,6 +90,56 @@ def test_analises_sheet_model():
     assert sheet.show_gridlines is False
     assert len(sheet.tables) == 0
     
-    # Ensure no input cells (everything is either string/header or formula)
+    assert sheet.column_widths == {
+        1: 28,
+        2: 4,
+        3: 28,
+        4: 4,
+        5: 28,
+        6: 4,
+        7: 32,
+    }
+    
+    # Ensure no input cells
     for cell in sheet.cells:
-        assert getattr(cell, "role", None) != "input"
+        assert cell.role != CellRole.INPUT
+
+    # Exact coordinate contract (row/col are zero-based, B2 -> 1,1)
+    cells_by_coord = {(c.row, c.col): c for c in sheet.cells}
+    
+    # Titles
+    assert cells_by_coord[(1, 1)].value == "Análises Financeiras"
+    assert cells_by_coord[(2, 1)].value == "Resumo executivo dos dados registrados no Planify. A posição patrimonial considera apenas ativos, dívidas e movimentos de cartão cadastrados; saldos anteriores de cartão não registrados não são incluídos."
+    
+    # Section A
+    assert cells_by_coord[(4, 1)].value == "Posição atual"
+    assert cells_by_coord[(5, 1)].value == "Ativos totais"
+    assert cells_by_coord[(5, 3)].value == "Saldos negativos em contas"
+    assert cells_by_coord[(5, 5)].value == "Dívidas estruturais"
+    assert cells_by_coord[(5, 7)].value == "Saldo líquido registrado em cartões"
+    assert cells_by_coord[(8, 1)].value == "Posição patrimonial registrada"
+    
+    # Section B
+    assert cells_by_coord[(11, 1)].value == "Liquidez e segurança"
+    assert cells_by_coord[(12, 1)].value == "Saldo disponível hoje"
+    assert cells_by_coord[(12, 3)].value == "Cobertura da reserva"
+    assert cells_by_coord[(12, 5)].value == "Falta para reserva"
+    
+    # Section C
+    assert cells_by_coord[(16, 1)].value == "Planejamento"
+    assert cells_by_coord[(17, 1)].value == "Compromissos no horizonte"
+    assert cells_by_coord[(17, 3)].value == "Orçamento no horizonte"
+    assert cells_by_coord[(17, 5)].value == "Margem no horizonte"
+    assert cells_by_coord[(17, 7)].value == "Uso conhecido no horizonte"
+    assert cells_by_coord[(20, 1)].value == "Aporte mensal para metas"
+    
+    # Formats
+    brl_coords = [(6, 1), (6, 3), (6, 5), (6, 7), (9, 1), (13, 1), (13, 5), (18, 1), (18, 3), (18, 5), (21, 1)]
+    for coord in brl_coords:
+        assert cells_by_coord[coord].number_format == "R$ #,##0.00"
+        
+    assert cells_by_coord[(13, 3)].number_format == "0.0"
+    assert cells_by_coord[(18, 7)].number_format == "0.0%"
+    
+    assert cells_by_coord[(9, 1)].bold is True
+    assert cells_by_coord[(9, 1)].size == 14

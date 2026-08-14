@@ -84,5 +84,13 @@ def build_analises_sheet() -> WorksheetPlan:
         show_gridlines=False,
         tables=[],
         cells=cells,
-        column_widths={2: 28, 3: 4, 4: 28, 5: 4, 6: 28, 7: 4, 8: 32}
+        column_widths={
+            1: 28,  # B
+            2: 4,   # C
+            3: 28,  # D
+            4: 4,   # E
+            5: 28,  # F
+            6: 4,   # G
+            7: 32,  # H
+        }
     )

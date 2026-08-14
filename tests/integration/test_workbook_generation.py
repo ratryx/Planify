@@ -524,7 +524,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         
     for cell in ["B5", "D5", "F5", "B8"]:
         assert "R$" in dash_inv_ws[cell].number_format or dash_inv_ws[cell].number_format == "General"
-    assert "0.0%" in dash_inv_ws["D8"].number_format or dash_inv_ws[cell].number_format == "General"
+    assert "0.0%" in dash_inv_ws["D8"].number_format or dash_inv_ws["D8"].number_format == "General"
     
     assert "tblResumoInvestimentos" in dash_inv_ws.tables
     table_resumo = dash_inv_ws.tables["tblResumoInvestimentos"]
