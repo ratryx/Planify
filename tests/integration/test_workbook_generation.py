@@ -24,6 +24,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Faturas",
         "Parcelamentos",
         "Orçamento",
+        "Metas",
         "Configurações"
     ]
 
@@ -289,6 +290,65 @@ def test_full_pipeline_light_and_dark(tmp_path):
     # Protection
     assert orcamento_ws.protection.sheet is False
 
+    # Phase 7: Check Metas table
+    metas_ws = wb["Metas"]
+    assert "tblMetas" in metas_ws.tables
+    
+    table_metas = metas_ws.tables["tblMetas"]
+    assert table_metas.ref == "B4:K5"
+    
+    metas_headers = [cell.value for cell in metas_ws[4] if cell.value]
+    assert metas_headers == [
+        "Meta", "Valor alvo", "Valor atual", "Data alvo", "Falta",
+        "Progresso %", "Meses restantes", "Aporte mensal necessário", "Status", "Situação"
+    ]
+    
+    for col in ["F", "G", "H", "I", "J", "K"]:
+        cell = metas_ws[f"{col}5"]
+        assert str(cell.value).startswith("=")
+        assert cell.data_type == "f"
+        
+    for col in ["B", "C", "D", "E"]:
+        cell = metas_ws[f"{col}5"]
+        assert not str(cell.value).startswith("=")
+        
+    alvo_val = None
+    atual_val = None
+    data_alvo_val = None
+    for val in metas_ws.data_validations.dataValidation:
+        sqref = val.sqref.__str__()
+        if "C" in sqref:
+            alvo_val = val
+        elif "D" in sqref:
+            atual_val = val
+        elif "E" in sqref:
+            data_alvo_val = val
+            
+    assert alvo_val is not None
+    assert alvo_val.type == "decimal"
+    assert alvo_val.operator == "greaterThan"
+    assert "0" in alvo_val.formula1
+    
+    assert atual_val is not None
+    assert atual_val.type == "decimal"
+    assert atual_val.operator == "greaterThanOrEqual"
+    assert "0" in atual_val.formula1
+    
+    assert data_alvo_val is not None
+    assert data_alvo_val.type == "date"
+    assert data_alvo_val.operator in (None, "between")
+    assert "1" in data_alvo_val.formula1
+    assert "2958465" in data_alvo_val.formula2
+    
+    assert "R$" in metas_ws["C5"].number_format or metas_ws["C5"].number_format == "General"
+    assert "R$" in metas_ws["D5"].number_format or metas_ws["D5"].number_format == "General"
+    assert "mmm/yyyy" in metas_ws["E5"].number_format or metas_ws["E5"].number_format == "General"
+    assert "R$" in metas_ws["F5"].number_format or metas_ws["F5"].number_format == "General"
+    assert "0.0%" in metas_ws["G5"].number_format or metas_ws["G5"].number_format == "General"
+    assert "R$" in metas_ws["I5"].number_format or metas_ws["I5"].number_format == "General"
+    
+    assert metas_ws.protection.sheet is False
+
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
     assert "tblTiposConta" in config_ws.tables
@@ -470,6 +530,12 @@ def test_full_pipeline_light_and_dark(tmp_path):
     ws_orcamento_dark = wb_dark["Orçamento"]
     assert "tblOrcamento" in ws_orcamento_dark.tables
     assert ws_orcamento_dark.tables["tblOrcamento"].ref == "B4:L5"
+
+    # Phase 7: Dark structural regression check for Metas
+    assert "Metas" in wb_dark.sheetnames
+    ws_metas_dark = wb_dark["Metas"]
+    assert "tblMetas" in ws_metas_dark.tables
+    assert ws_metas_dark.tables["tblMetas"].ref == "B4:K5"
 
 def test_literal_string_starts_with_equal(tmp_path):
     from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan
