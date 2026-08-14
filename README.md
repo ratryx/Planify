@@ -54,7 +54,7 @@ request = GenerationRequest(
     with_sample_data=False,
     locale="pt_BR",
     currency="BRL",
-    profile="default",
+    profile="couple",
     reserve_months=6,
     projection_horizon=12
 )
@@ -64,11 +64,11 @@ path = generate(request, "output")
 
 Generation options supported:
 - `template_id`: Which template to run (currently `finance_personal`)
-- `year`: Base year for dates and projections
+- `year`: Base year used by year-scoped workbook content. The `Projeções` worksheet uses the current calendar month via `TODAY()` instead of this field.
 - `locale` / `currency`: Localization preferences
 - `theme`: `"light"` or `"dark"`
-- `with_sample_data`: Injects test data if True
-- `profile`: User demographic profile 
+- `with_sample_data`: Enables built-in sample rows in the workbook where sample data is currently supported.
+- `profile`: Accepted as a configuration field but does not currently alter `finance_personal` behavior.
 - `reserve_months`: Target emergency reserve coverage in months
 - `projection_horizon`: Effectively bounded by the `finance_personal` projection implementation to 1..60 months.
 
