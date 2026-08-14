@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 from excel_saas.core.models.generation_request import GenerationRequest
 from excel_saas.core.models.workbook_plan import WorksheetPlan, TablePlan, ColumnPlan, CellPlan
 from excel_saas.core.models.cell_roles import CellRole
@@ -17,7 +17,7 @@ from .projecoes_semantics import (
 def build_projecoes_sheet(request: GenerationRequest) -> WorksheetPlan:
     horizon = _effective_projection_horizon(request.projection_horizon)
     
-    rows_data: List[List[str]] = []
+    rows_data: List[List[Any]] = []
     for i in range(horizon):
         rows_data.append([
             "", # Competência
@@ -27,7 +27,7 @@ def build_projecoes_sheet(request: GenerationRequest) -> WorksheetPlan:
             "", # Compromissos conhecidos
             "", # Margem vs orçamento
             "", # Uso conhecido %
-            str(i) # sys_Offset
+            i # sys_Offset
         ])
     
     table = TablePlan(

@@ -17,18 +17,44 @@ def test_full_pipeline_light_and_dark(tmp_path):
     # Verify via openpyxl
     wb = openpyxl.load_workbook(path_light, data_only=False)
     wb_dark = openpyxl.load_workbook(path_dark)
-    assert wb_dark.sheetnames == [
-        "Comece Aqui", "Dashboard", "Lançamentos", "Contas", "Cartões",
-        "Faturas", "Parcelamentos", "Orçamento", "Metas", "Reserva",
-        "Investimentos", "Dashboard Investimentos", "Patrimônio", "Dashboard Patrimônio",
-        "Dívidas", "Projeções", "Configurações"
+    expected_sheets = [
+        "Comece Aqui",
+        "Dashboard",
+        "Lançamentos",
+        "Contas",
+        "Cartões",
+        "Faturas",
+        "Parcelamentos",
+        "Orçamento",
+        "Metas",
+        "Reserva",
+        "Investimentos",
+        "Dashboard Investimentos",
+        "Patrimônio",
+        "Dashboard Patrimônio",
+        "Dívidas",
+        "Projeções",
+        "Configurações",
     ]
+    assert wb.sheetnames == expected_sheets
+    assert wb_dark.sheetnames == expected_sheets
     
     assert "Projeções" in wb_dark.sheetnames
     proj_dark = wb_dark["Projeções"]
     assert proj_dark.protection.sheet is True
     assert "tblProjecoes" in proj_dark.tables
     assert proj_dark.tables["tblProjecoes"].ref == "B4:I16"
+    
+    from openpyxl.utils import column_index_from_string
+    target_hidden_cols_dark = {column_index_from_string("I")}
+    covered_hidden_dark = set()
+    for _, col_dim in proj_dark.column_dimensions.items():
+        if getattr(col_dim, "hidden", False):
+            for idx in range(col_dim.min, col_dim.max + 1):
+                covered_hidden_dark.add(idx)
+
+    for col_idx in target_hidden_cols_dark:
+        assert col_idx in covered_hidden_dark
 
     ws = wb["Lançamentos"]
 
@@ -699,6 +725,9 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert projecoes_ws.protection.sheet is True
     assert projecoes_ws.freeze_panes == "B5"
     
+    assert projecoes_ws["B2"].value == "Projeções"
+    assert projecoes_ws["B3"].value == "Compromissos conhecidos a partir do próximo mês, comparados ao orçamento cadastrado. Não representa previsão completa de receitas, gastos ou saldo futuro."
+    
     assert "tblProjecoes" in projecoes_ws.tables
     table_projecoes = projecoes_ws.tables["tblProjecoes"]
     assert table_projecoes.ref == "B4:I16"
@@ -717,8 +746,8 @@ def test_full_pipeline_light_and_dark(tmp_path):
             assert cell.data_type == "f"
         
         cell_i = projecoes_ws[f"I{row}"]
-        assert str(cell_i.value) == str(row - 5)
-        assert cell_i.data_type != "f"
+        assert cell_i.value == row - 5
+        assert cell_i.data_type == "n"
         
         assert projecoes_ws[f"B{row}"].number_format == "mmm/yyyy"
         for col in ["C", "D", "E", "F", "G"]:

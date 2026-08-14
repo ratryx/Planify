@@ -23,23 +23,21 @@ def test_effective_horizon():
 
 def test_competence_formula():
     f = str(Formula(build_competencia()))
-    assert "EDATE" in f
-    assert "DATE(YEAR(TODAY()),MONTH(TODAY()),1)" in f
-    assert "[@sys_Offset]+1" in f
+    assert f == "=EDATE(DATE(YEAR(TODAY()),MONTH(TODAY()),1),[@sys_Offset]+1)"
     assert "request.year" not in f
 
 def test_budget_formula():
     f = str(Formula(build_orcamento_planejado()))
-    assert 'SUMIFS(tblOrcamento[Orçamento],tblOrcamento[sys_CompetenciaNormalizada],[@Competência],tblOrcamento[Status],"OK")' in f
+    assert f == '=SUMIFS(tblOrcamento[Orçamento],tblOrcamento[sys_CompetenciaNormalizada],[@Competência],tblOrcamento[Status],"OK")'
 
 def test_card_formula():
     f = str(Formula(build_card_commitments()))
-    assert 'tblLancamentos[sys_ValorParcelaBase]' in f
-    assert 'tblLancamentos[sys_FaturaInicial]' in f
-    assert 'tblLancamentos[sys_FaturaFinal]' in f
-    assert 'tblLancamentos[sys_AjusteUltimaParcela]' in f
-    assert 'tblLancamentos[sys_CreditoFatura]' in f
-    assert 'tblLancamentos[sys_CompetenciaEfetiva]' in f
+    expected = (
+        '=SUMIFS(tblLancamentos[sys_ValorParcelaBase],tblLancamentos[sys_FaturaInicial],"<="&[@Competência],tblLancamentos[sys_FaturaFinal],">="&[@Competência])'
+        '+SUMIFS(tblLancamentos[sys_AjusteUltimaParcela],tblLancamentos[sys_FaturaFinal],[@Competência])'
+        '-SUMIFS(tblLancamentos[sys_CreditoFatura],tblLancamentos[sys_CompetenciaEfetiva],[@Competência])'
+    )
+    assert f == expected
     assert 'tblFaturas' not in f
     assert 'tblParcelamentos' not in f
     assert 'sys_PagamentoFatura' not in f
@@ -47,10 +45,11 @@ def test_card_formula():
 
 def test_debt_formula():
     f = str(Formula(build_structural_debt_commitments()))
-    assert 'tblDividas[sys_ParcelaMensalValida]' in f
-    assert 'tblDividas[Data final]' in f
-    assert '">="&[@Competência]' in f
-    assert '""' in f
+    expected = (
+        '=SUMIFS(tblDividas[sys_ParcelaMensalValida],tblDividas[Data final],">="&[@Competência])'
+        '+SUMIFS(tblDividas[sys_ParcelaMensalValida],tblDividas[Data final],"")'
+    )
+    assert f == expected
     assert 'Saldo devedor atual' not in f
 
 def test_known_total():
@@ -96,7 +95,9 @@ def test_table_model_default():
         assert c.role != CellRole.INPUT
         
     offsets = [row[7] for row in table.data]
-    assert offsets == [str(i) for i in range(12)]
+    assert offsets == list(range(12))
+    for offset in offsets:
+        assert isinstance(offset, int)
 
 def test_custom_horizons():
     def get_len(h):
