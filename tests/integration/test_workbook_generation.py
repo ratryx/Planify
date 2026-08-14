@@ -25,6 +25,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Parcelamentos",
         "Orçamento",
         "Metas",
+        "Reserva",
         "Configurações"
     ]
 
@@ -349,6 +350,70 @@ def test_full_pipeline_light_and_dark(tmp_path):
     
     assert metas_ws.protection.sheet is False
 
+    # Phase 8: Check Reserva table
+    reserva_ws = wb["Reserva"]
+    assert "tblReserva" in reserva_ws.tables
+    
+    table_reserva = reserva_ws.tables["tblReserva"]
+    assert table_reserva.ref == "B4:J5"
+    
+    reserva_headers = [cell.value for cell in reserva_ws[4] if cell.value]
+    assert reserva_headers == [
+        "Custo essencial mensal", "Meses desejados", "Reserva atual", "Reserva alvo",
+        "Falta", "Cobertura atual", "Progresso %", "Status", "Situação"
+    ]
+    
+    for col in ["E", "F", "G", "H", "I", "J"]:
+        cell = reserva_ws[f"{col}5"]
+        assert str(cell.value).startswith("=")
+        assert cell.data_type == "f"
+        
+    for col in ["B", "C", "D"]:
+        cell = reserva_ws[f"{col}5"]
+        assert not str(cell.value).startswith("=")
+        
+    custo_val = None
+    meses_val = None
+    reserva_val = None
+    for val in reserva_ws.data_validations.dataValidation:
+        sqref = val.sqref.__str__()
+        if "B" in sqref:
+            custo_val = val
+        elif "C" in sqref:
+            meses_val = val
+        elif "D" in sqref:
+            reserva_val = val
+            
+    assert custo_val is not None
+    assert custo_val.type == "decimal"
+    assert custo_val.operator == "greaterThan"
+    assert "0" in custo_val.formula1
+    
+    assert meses_val is not None
+    assert meses_val.type == "whole"
+    assert meses_val.operator == "greaterThanOrEqual"
+    assert "1" in meses_val.formula1
+    
+    assert reserva_val is not None
+    assert reserva_val.type == "decimal"
+    assert reserva_val.operator == "greaterThanOrEqual"
+    assert "0" in reserva_val.formula1
+    
+    assert "R$" in reserva_ws["B5"].number_format or reserva_ws["B5"].number_format == "General"
+    assert "General" in reserva_ws["C5"].number_format or reserva_ws["C5"].number_format == "0"
+    assert "R$" in reserva_ws["D5"].number_format or reserva_ws["D5"].number_format == "General"
+    assert "R$" in reserva_ws["E5"].number_format or reserva_ws["E5"].number_format == "General"
+    assert "R$" in reserva_ws["F5"].number_format or reserva_ws["F5"].number_format == "General"
+    assert "0.0" in reserva_ws["G5"].number_format or reserva_ws["G5"].number_format == "General"
+    assert "0.0%" in reserva_ws["H5"].number_format or reserva_ws["H5"].number_format == "General"
+    
+    assert reserva_ws.protection.sheet is False
+
+    # Check Seed default
+    assert reserva_ws["B5"].value is None
+    assert reserva_ws["C5"].value == 6
+    assert reserva_ws["D5"].value is None
+
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
     assert "tblTiposConta" in config_ws.tables
@@ -536,6 +601,12 @@ def test_full_pipeline_light_and_dark(tmp_path):
     ws_metas_dark = wb_dark["Metas"]
     assert "tblMetas" in ws_metas_dark.tables
     assert ws_metas_dark.tables["tblMetas"].ref == "B4:K5"
+
+    # Phase 8: Dark structural regression check for Reserva
+    assert "Reserva" in wb_dark.sheetnames
+    ws_reserva_dark = wb_dark["Reserva"]
+    assert "tblReserva" in ws_reserva_dark.tables
+    assert ws_reserva_dark.tables["tblReserva"].ref == "B4:J5"
 
 def test_literal_string_starts_with_equal(tmp_path):
     from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan

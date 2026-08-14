@@ -9,6 +9,7 @@ from .faturas import build_faturas
 from .parcelamentos import build_parcelamentos_sheet
 from .orcamento import build_orcamento_sheet
 from .metas import build_metas_sheet
+from .reserva import build_reserva_sheet
 
 class FinancePersonalTemplate(BaseTemplate):
     def build_workbook_plan(self, request: GenerationRequest) -> WorkbookPlan:
@@ -26,6 +27,7 @@ class FinancePersonalTemplate(BaseTemplate):
                 build_parcelamentos_sheet(),
                 build_orcamento_sheet(),
                 build_metas_sheet(),
+                build_reserva_sheet(request),
                 build_configuracoes(request)
             ],
             defined_names=[
