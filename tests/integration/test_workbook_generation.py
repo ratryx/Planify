@@ -34,6 +34,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Dashboard Patrimônio",
         "Dívidas",
         "Projeções",
+        "Análises",
         "Configurações",
     ]
     assert wb.sheetnames == expected_sheets
@@ -523,7 +524,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         
     for cell in ["B5", "D5", "F5", "B8"]:
         assert "R$" in dash_inv_ws[cell].number_format or dash_inv_ws[cell].number_format == "General"
-    assert "0.0%" in dash_inv_ws["D8"].number_format or dash_inv_ws["D8"].number_format == "General"
+    assert "0.0%" in dash_inv_ws["D8"].number_format or dash_inv_ws[cell].number_format == "General"
     
     assert "tblResumoInvestimentos" in dash_inv_ws.tables
     table_resumo = dash_inv_ws.tables["tblResumoInvestimentos"]
@@ -723,6 +724,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
     # Phase 14: Check Projeções
     projecoes_ws = wb["Projeções"]
     assert projecoes_ws.protection.sheet is True
+    assert projecoes_ws.sheet_state == "visible"
     assert projecoes_ws.freeze_panes == "B5"
     
     assert projecoes_ws["B2"].value == "Projeções"
@@ -768,6 +770,55 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert dividas_ws["F5"].number_format == "R$ #,##0.00"
     assert dividas_ws["J5"].number_format == "R$ #,##0.00"
     assert dividas_ws["K5"].number_format == "R$ #,##0.00"
+
+    # Phase 15: Check Análises
+    analises_sheet = wb["Análises"]
+    
+    assert analises_sheet.protection.sheet is True
+    assert analises_sheet.sheet_view.showGridLines is False
+    assert len(analises_sheet.tables) == 0
+    
+    # Exact labels
+    assert analises_sheet["B2"].value == "Análises Financeiras"
+    assert analises_sheet["B3"].value == "Resumo executivo dos dados registrados no Planify. A posição patrimonial considera apenas ativos, dívidas e movimentos de cartão cadastrados; saldos anteriores de cartão não registrados não são incluídos."
+    assert analises_sheet["B5"].value == "Posição atual"
+    assert analises_sheet["B6"].value == "Ativos totais"
+    assert analises_sheet["D6"].value == "Saldos negativos em contas"
+    assert analises_sheet["F6"].value == "Dívidas estruturais"
+    assert analises_sheet["H6"].value == "Saldo líquido registrado em cartões"
+    assert analises_sheet["B9"].value == "Posição patrimonial registrada"
+    
+    assert analises_sheet["B12"].value == "Liquidez e segurança"
+    assert analises_sheet["B13"].value == "Saldo disponível hoje"
+    assert analises_sheet["D13"].value == "Cobertura da reserva"
+    assert analises_sheet["F13"].value == "Falta para reserva"
+    
+    assert analises_sheet["B17"].value == "Planejamento"
+    assert analises_sheet["B18"].value == "Compromissos no horizonte"
+    assert analises_sheet["D18"].value == "Orçamento no horizonte"
+    assert analises_sheet["F18"].value == "Margem no horizonte"
+    assert analises_sheet["H18"].value == "Uso conhecido no horizonte"
+    assert analises_sheet["B21"].value == "Aporte mensal para metas"
+    
+    # Exact formula cells
+    formula_cells = ["B7", "D7", "F7", "H7", "B10", "B14", "D14", "F14", "B19", "D19", "F19", "H19", "B22"]
+    for cell in formula_cells:
+        assert analises_sheet[cell].data_type == "f"
+    
+    # Exact formats
+    brl_cells = ["B7", "D7", "F7", "H7", "B10", "B14", "F14", "B19", "D19", "F19", "B22"]
+    for cell in brl_cells:
+        assert analises_sheet[cell].number_format == "R$ #,##0.00"
+    assert analises_sheet["D14"].number_format == "0.0"
+    assert analises_sheet["H19"].number_format == "0.0%"
+
+    # Dark mode phase 15 check
+    analises_dark = wb_dark["Análises"]
+    assert analises_dark.protection.sheet is True
+    assert len(analises_dark.tables) == 0
+    assert analises_dark["B2"].value == "Análises Financeiras"
+    assert analises_dark["B10"].data_type == "f"
+    assert analises_dark["B22"].data_type == "f"
 
     target_hidden_cols_dividas = {column_index_from_string("J"), column_index_from_string("K")}
     covered_hidden_div = set()

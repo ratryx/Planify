@@ -10,6 +10,7 @@ from .parcelamentos import build_parcelamentos_sheet
 from .orcamento import build_orcamento_sheet
 from .metas import build_metas_sheet
 from .reserva import build_reserva_sheet
+from .analises import build_analises_sheet
 from .investimentos import build_investimentos_sheet
 from .dashboard_investimentos import build_dashboard_investimentos_sheet
 from .patrimonio import build_patrimonio_sheet
@@ -40,6 +41,7 @@ class FinancePersonalTemplate(BaseTemplate):
                 build_dashboard_patrimonio_sheet(),
                 build_dividas_sheet(),
                 build_projecoes_sheet(request),
+                build_analises_sheet(),
                 build_configuracoes(request)
             ],
             defined_names=[
