@@ -28,6 +28,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Reserva",
         "Investimentos",
         "Dashboard Investimentos",
+        "Patrimônio",
         "Configurações"
     ]
 
@@ -534,6 +535,57 @@ def test_full_pipeline_light_and_dark(tmp_path):
     for col_idx in target_hidden_cols:
         assert col_idx in covered_hidden_inv
 
+    # Phase 11: Check Patrimônio
+    patrimonio_ws = wb["Patrimônio"]
+    assert patrimonio_ws.protection.sheet is False
+
+    assert "tblBensPatrimoniais" in patrimonio_ws.tables
+    table_bens = patrimonio_ws.tables["tblBensPatrimoniais"]
+    assert table_bens.ref == "B4:G5"
+
+    bens_headers = [cell.value for cell in patrimonio_ws[4] if cell.value]
+    assert bens_headers == ["Bem", "Categoria", "Valor atual", "Observação", "Status", "sys_ValorAtualValido"]
+
+    for col in ["B", "C", "D", "E"]:
+        cell = patrimonio_ws[f"{col}5"]
+        assert not str(cell.value).startswith("=")
+        
+    for col in ["F", "G"]:
+        cell = patrimonio_ws[f"{col}5"]
+        assert str(cell.value).startswith("=")
+        assert cell.data_type == "f"
+
+    cat_val_bens = None
+    valor_val_bens = None
+    for val in patrimonio_ws.data_validations.dataValidation:
+        sqref = val.sqref.__str__()
+        if "C" in sqref:
+            cat_val_bens = val
+        elif "D" in sqref:
+            valor_val_bens = val
+
+    assert cat_val_bens is not None
+    assert cat_val_bens.type == "list"
+    assert '"Imóveis' in cat_val_bens.formula1
+    assert 'Outros"' in cat_val_bens.formula1
+
+    assert valor_val_bens is not None
+    assert valor_val_bens.type == "decimal"
+    assert valor_val_bens.operator == "greaterThanOrEqual"
+    assert "0" in valor_val_bens.formula1
+
+    assert "R$" in patrimonio_ws["D5"].number_format or patrimonio_ws["D5"].number_format == "General"
+
+    target_hidden_cols_patrimonio = {column_index_from_string("G")}
+    covered_hidden_pat = set()
+    for _, col_dim in patrimonio_ws.column_dimensions.items():
+        if getattr(col_dim, "hidden", False):
+            for idx in range(col_dim.min, col_dim.max + 1):
+                covered_hidden_pat.add(idx)
+                
+    for col_idx in target_hidden_cols_patrimonio:
+        assert col_idx in covered_hidden_pat
+
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
     assert "tblTiposConta" in config_ws.tables
@@ -740,6 +792,18 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert "tblResumoInvestimentos" in ws_dash_inv_dark.tables
     assert ws_dash_inv_dark.tables["tblResumoInvestimentos"].ref == "B11:H19"
     assert ws_dash_inv_dark.protection.sheet is True
+    # Phase 11: Dark structural regression check for Patrimônio
+    assert "Patrimônio" in wb_dark.sheetnames
+    ws_patrimonio_dark = wb_dark["Patrimônio"]
+    assert "tblBensPatrimoniais" in ws_patrimonio_dark.tables
+    assert ws_patrimonio_dark.tables["tblBensPatrimoniais"].ref == "B4:G5"
+    
+    covered_hidden_pat_dark = set()
+    for _, col_dim in ws_patrimonio_dark.column_dimensions.items():
+        if getattr(col_dim, "hidden", False):
+            for idx in range(col_dim.min, col_dim.max + 1):
+                covered_hidden_pat_dark.add(idx)
+    assert column_index_from_string("G") in covered_hidden_pat_dark
 
 def test_literal_string_starts_with_equal(tmp_path):
     from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan
