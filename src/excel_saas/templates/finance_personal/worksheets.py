@@ -5,25 +5,31 @@ from excel_saas.core.models.generation_request import GenerationRequest
 
 def build_comece_aqui(request: GenerationRequest) -> WorksheetPlan:
     cells = [
-        CellPlan(row=1, col=1, value="Bem-vindo ao Financeiro Pessoal", role=CellRole.TITLE, size=16, bold=True),
-        CellPlan(row=3, col=1, value=f"Ano Base: {request.year}", role=CellRole.NORMAL, bold=True),
-        CellPlan(row=5, col=1, value="Instruções Iniciais:", role=CellRole.HEADER, bold=True),
-        CellPlan(row=6, col=1, value="1. Cadastre suas contas na aba 'Contas'."),
-        CellPlan(row=7, col=1, value="2. Cadastre seus cartões na aba 'Cartões'."),
-        CellPlan(row=8, col=1, value="Para cadastrar um cartão, basta informar um nome. Limite, fechamento, vencimento e conta de pagamento são opcionais."),
-        CellPlan(row=9, col=1, value="3. Configure categorias na aba 'Configurações'."),
-        CellPlan(row=10, col=1, value="4. Registre lançamentos na aba 'Lançamentos'."),
-        CellPlan(row=11, col=1, value="Convenções Visuais:"),
-        CellPlan(row=12, col=1, value="Células editáveis (Input)", role=CellRole.INPUT),
-        CellPlan(row=13, col=1, value="Células automáticas (Fórmulas/Sistema) - Não edite", role=CellRole.FORMULA),
+        CellPlan(row=1, col=1, value="Bem-vindo ao Financeiro Pessoal", role=CellRole.TITLE),
+        CellPlan(row=3, col=1, value=f"Ano Base: {request.year}", role=CellRole.NORMAL),
+        CellPlan(row=5, col=1, value="Como usar o Planify:", role=CellRole.HEADER),
+        CellPlan(row=6, col=1, value="1. Revise as categorias na aba 'Configurações' e ajuste-as se necessário.", role=CellRole.NORMAL),
+        CellPlan(row=7, col=1, value="2. Cadastre suas contas na aba 'Contas' e seus cartões na aba 'Cartões'.", role=CellRole.NORMAL),
+        CellPlan(row=8, col=1, value="Para cartões, apenas o nome é obrigatório. Limite, fechamento, vencimento e conta de pagamento são opcionais.", role=CellRole.NORMAL),
+        CellPlan(row=9, col=1, value="3. Registre receitas, despesas, transferências, investimentos, resgates, pagamentos e estornos na aba 'Lançamentos'.", role=CellRole.NORMAL),
+        CellPlan(row=10, col=1, value="4. Planeje seu orçamento, metas e reserva de emergência nas abas 'Orçamento', 'Metas' e 'Reserva'.", role=CellRole.NORMAL),
+        CellPlan(row=11, col=1, value="5. Cadastre investimentos, bens patrimoniais e dívidas estruturais em suas respectivas abas.", role=CellRole.NORMAL),
+        CellPlan(row=12, col=1, value="6. Consulte faturas, parcelamentos, dashboards, projeções e a aba 'Análises' para acompanhar sua situação financeira.", role=CellRole.NORMAL),
+        CellPlan(row=14, col=1, value="Importante:", role=CellRole.HEADER),
+        CellPlan(row=15, col=1, value="As projeções mostram compromissos conhecidos a partir do próximo mês e não representam uma previsão completa de receitas, gastos ou saldo futuro.", role=CellRole.NORMAL),
+        CellPlan(row=16, col=1, value="A posição patrimonial considera somente os dados registrados no Planify; saldos anteriores de cartão não cadastrados não são incluídos.", role=CellRole.NORMAL),
+        CellPlan(row=18, col=1, value="Convenções visuais:", role=CellRole.HEADER),
+        CellPlan(row=19, col=1, value="Células editáveis (Input)", role=CellRole.INPUT),
+        CellPlan(row=20, col=1, value="Células automáticas (Fórmulas/Sistema) - Não edite", role=CellRole.FORMULA),
     ]
 
     return WorksheetPlan(
         name="Comece Aqui",
         is_protected=True,
         show_gridlines=False,
+        tables=[],
         cells=cells,
-        column_widths={1: 60}
+        column_widths={1: 110}
     )
 
 def build_dashboard(request: GenerationRequest) -> WorksheetPlan:

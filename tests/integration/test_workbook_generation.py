@@ -40,6 +40,33 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert wb.sheetnames == expected_sheets
     assert wb_dark.sheetnames == expected_sheets
     
+    # Phase 1: Comece Aqui validation
+    ws_ca = wb["Comece Aqui"]
+    assert ws_ca.protection.sheet is True
+    assert ws_ca.sheet_view.showGridLines is False
+    
+    assert ws_ca["B2"].value == "Bem-vindo ao Financeiro Pessoal"
+    assert ws_ca["B4"].value == "Ano Base: 2026"
+    assert ws_ca["B6"].value == "Como usar o Planify:"
+    assert ws_ca["B7"].value == "1. Revise as categorias na aba 'Configurações' e ajuste-as se necessário."
+    assert ws_ca["B8"].value == "2. Cadastre suas contas na aba 'Contas' e seus cartões na aba 'Cartões'."
+    assert ws_ca["B9"].value == "Para cartões, apenas o nome é obrigatório. Limite, fechamento, vencimento e conta de pagamento são opcionais."
+    assert ws_ca["B10"].value == "3. Registre receitas, despesas, transferências, investimentos, resgates, pagamentos e estornos na aba 'Lançamentos'."
+    assert ws_ca["B11"].value == "4. Planeje seu orçamento, metas e reserva de emergência nas abas 'Orçamento', 'Metas' e 'Reserva'."
+    assert ws_ca["B12"].value == "5. Cadastre investimentos, bens patrimoniais e dívidas estruturais em suas respectivas abas."
+    assert ws_ca["B13"].value == "6. Consulte faturas, parcelamentos, dashboards, projeções e a aba 'Análises' para acompanhar sua situação financeira."
+    
+    assert ws_ca["B15"].value == "Importante:"
+    assert ws_ca["B16"].value == "As projeções mostram compromissos conhecidos a partir do próximo mês e não representam uma previsão completa de receitas, gastos ou saldo futuro."
+    assert ws_ca["B17"].value == "A posição patrimonial considera somente os dados registrados no Planify; saldos anteriores de cartão não cadastrados não são incluídos."
+    
+    assert ws_ca["B19"].value == "Convenções visuais:"
+    assert ws_ca["B20"].value == "Células editáveis (Input)"
+    assert ws_ca["B21"].value == "Células automáticas (Fórmulas/Sistema) - Não edite"
+
+    assert ws_ca["B20"].protection.locked is False
+    assert ws_ca["B21"].protection.locked is True
+    
     assert "Projeções" in wb_dark.sheetnames
     proj_dark = wb_dark["Projeções"]
     assert proj_dark.protection.sheet is True
