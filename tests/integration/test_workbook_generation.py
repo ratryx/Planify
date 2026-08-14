@@ -27,6 +27,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Metas",
         "Reserva",
         "Investimentos",
+        "Dashboard Investimentos",
         "Configurações"
     ]
 
@@ -481,6 +482,47 @@ def test_full_pipeline_light_and_dark(tmp_path):
     
     assert investimentos_ws.protection.sheet is False
 
+    # Phase 10: Check Dashboard Investimentos
+    dash_inv_ws = wb["Dashboard Investimentos"]
+    assert dash_inv_ws.protection.sheet is True
+    
+    assert dash_inv_ws["B4"].value == "Total aportado"
+    assert dash_inv_ws["D4"].value == "Total recebido"
+    assert dash_inv_ws["F4"].value == "Valor atual"
+    assert dash_inv_ws["B7"].value == "Resultado total"
+    assert dash_inv_ws["D7"].value == "Retorno simples %"
+    
+    for cell in ["B5", "D5", "F5", "B8", "D8"]:
+        assert str(dash_inv_ws[cell].value).startswith("=")
+        assert dash_inv_ws[cell].data_type == "f"
+        
+    for cell in ["B5", "D5", "F5", "B8"]:
+        assert "R$" in dash_inv_ws[cell].number_format or dash_inv_ws[cell].number_format == "General"
+    assert "0.0%" in dash_inv_ws["D8"].number_format or dash_inv_ws["D8"].number_format == "General"
+    
+    assert "tblResumoInvestimentos" in dash_inv_ws.tables
+    table_resumo = dash_inv_ws.tables["tblResumoInvestimentos"]
+    assert table_resumo.ref == "B11:H19"
+    
+    resumo_headers = [cell.value for cell in dash_inv_ws[11] if cell.value]
+    assert resumo_headers == [
+        "Classe", "Total aportado", "Total recebido", "Valor atual", 
+        "Resultado total", "Peso carteira %", "Retorno simples %"
+    ]
+    
+    classes_esperadas = ["Renda fixa", "Ações", "FIIs", "ETFs", "Fundos", "Cripto", "Previdência", "Outros"]
+    for i, expected_class in enumerate(classes_esperadas, start=12):
+        cell = dash_inv_ws[f"B{i}"]
+        assert cell.value == expected_class
+        assert cell.data_type != "f"
+        assert cell.protection.locked is True
+        
+    for i in range(12, 20):
+        for col in ["C", "D", "E", "F", "G", "H"]:
+            cell = dash_inv_ws[f"{col}{i}"]
+            assert str(cell.value).startswith("=")
+            assert cell.data_type == "f"
+
     from openpyxl.utils import column_index_from_string
     target_hidden_cols = {column_index_from_string("M"), column_index_from_string("N"), column_index_from_string("O")}
     covered_hidden_inv = set()
@@ -691,6 +733,13 @@ def test_full_pipeline_light_and_dark(tmp_path):
     ws_invest_dark = wb_dark["Investimentos"]
     assert "tblInvestimentos" in ws_invest_dark.tables
     assert ws_invest_dark.tables["tblInvestimentos"].ref == "B4:O5"
+
+    # Phase 10: Dark structural regression check for Dashboard Investimentos
+    assert "Dashboard Investimentos" in wb_dark.sheetnames
+    ws_dash_inv_dark = wb_dark["Dashboard Investimentos"]
+    assert "tblResumoInvestimentos" in ws_dash_inv_dark.tables
+    assert ws_dash_inv_dark.tables["tblResumoInvestimentos"].ref == "B11:H19"
+    assert ws_dash_inv_dark.protection.sheet is True
 
 def test_literal_string_starts_with_equal(tmp_path):
     from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan

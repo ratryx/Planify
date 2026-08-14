@@ -11,6 +11,7 @@ from .orcamento import build_orcamento_sheet
 from .metas import build_metas_sheet
 from .reserva import build_reserva_sheet
 from .investimentos import build_investimentos_sheet
+from .dashboard_investimentos import build_dashboard_investimentos_sheet
 
 class FinancePersonalTemplate(BaseTemplate):
     def build_workbook_plan(self, request: GenerationRequest) -> WorkbookPlan:
@@ -30,6 +31,7 @@ class FinancePersonalTemplate(BaseTemplate):
                 build_metas_sheet(),
                 build_reserva_sheet(request),
                 build_investimentos_sheet(),
+                build_dashboard_investimentos_sheet(),
                 build_configuracoes(request)
             ],
             defined_names=[
