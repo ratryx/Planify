@@ -15,6 +15,7 @@ from .dashboard_investimentos import build_dashboard_investimentos_sheet
 from .patrimonio import build_patrimonio_sheet
 from .dashboard_patrimonio import build_dashboard_patrimonio_sheet
 from .dividas import build_dividas_sheet
+from .projecoes import build_projecoes_sheet
 
 class FinancePersonalTemplate(BaseTemplate):
     def build_workbook_plan(self, request: GenerationRequest) -> WorkbookPlan:
@@ -38,6 +39,7 @@ class FinancePersonalTemplate(BaseTemplate):
                 build_patrimonio_sheet(),
                 build_dashboard_patrimonio_sheet(),
                 build_dividas_sheet(),
+                build_projecoes_sheet(request),
                 build_configuracoes(request)
             ],
             defined_names=[

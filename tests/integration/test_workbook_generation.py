@@ -8,31 +8,27 @@ def test_full_pipeline_light_and_dark(tmp_path):
 
     req_light = GenerationRequest(template_id="finance_personal", year=2026, theme="light")
     path_light = generate(req_light, output_dir)
+    
+    req_dark = GenerationRequest(template_id="finance_personal", year=2026, theme="dark")
+    path_dark = generate(req_dark, output_dir)
 
     assert os.path.exists(path_light)
 
     # Verify via openpyxl
     wb = openpyxl.load_workbook(path_light, data_only=False)
-    sheet_names = wb.sheetnames
-
-    assert sheet_names == [
-        "Comece Aqui",
-        "Dashboard",
-        "Lançamentos",
-        "Contas",
-        "Cartões",
-        "Faturas",
-        "Parcelamentos",
-        "Orçamento",
-        "Metas",
-        "Reserva",
-        "Investimentos",
-        "Dashboard Investimentos",
-        "Patrimônio",
-        "Dashboard Patrimônio",
-        "Dívidas",
-        "Configurações"
+    wb_dark = openpyxl.load_workbook(path_dark)
+    assert wb_dark.sheetnames == [
+        "Comece Aqui", "Dashboard", "Lançamentos", "Contas", "Cartões",
+        "Faturas", "Parcelamentos", "Orçamento", "Metas", "Reserva",
+        "Investimentos", "Dashboard Investimentos", "Patrimônio", "Dashboard Patrimônio",
+        "Dívidas", "Projeções", "Configurações"
     ]
+    
+    assert "Projeções" in wb_dark.sheetnames
+    proj_dark = wb_dark["Projeções"]
+    assert proj_dark.protection.sheet is True
+    assert "tblProjecoes" in proj_dark.tables
+    assert proj_dark.tables["tblProjecoes"].ref == "B4:I16"
 
     ws = wb["Lançamentos"]
 
@@ -698,6 +694,47 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert data_val_dividas.formula2 == "2958465"
     assert data_val_dividas.allowBlank is True
 
+    # Phase 14: Check Projeções
+    projecoes_ws = wb["Projeções"]
+    assert projecoes_ws.protection.sheet is True
+    assert projecoes_ws.freeze_panes == "B5"
+    
+    assert "tblProjecoes" in projecoes_ws.tables
+    table_projecoes = projecoes_ws.tables["tblProjecoes"]
+    assert table_projecoes.ref == "B4:I16"
+    
+    projecoes_headers = [cell.value for cell in projecoes_ws[4] if cell.value]
+    assert projecoes_headers == [
+        "Competência", "Orçamento planejado", "Compromissos no cartão",
+        "Dívidas estruturais", "Compromissos conhecidos", "Margem vs orçamento",
+        "Uso conhecido %", "sys_Offset"
+    ]
+    
+    for row in range(5, 17):
+        for col in ["B", "C", "D", "E", "F", "G", "H"]:
+            cell = projecoes_ws[f"{col}{row}"]
+            assert str(cell.value).startswith("=")
+            assert cell.data_type == "f"
+        
+        cell_i = projecoes_ws[f"I{row}"]
+        assert str(cell_i.value) == str(row - 5)
+        assert cell_i.data_type != "f"
+        
+        assert projecoes_ws[f"B{row}"].number_format == "mmm/yyyy"
+        for col in ["C", "D", "E", "F", "G"]:
+            assert projecoes_ws[f"{col}{row}"].number_format == "R$ #,##0.00"
+        assert projecoes_ws[f"H{row}"].number_format == "0.0%"
+        
+    target_hidden_cols_projecoes = {column_index_from_string("I")}
+    covered_hidden_projecoes = set()
+    for _, col_dim in projecoes_ws.column_dimensions.items():
+        if getattr(col_dim, "hidden", False):
+            for idx in range(col_dim.min, col_dim.max + 1):
+                covered_hidden_projecoes.add(idx)
+
+    for col_idx in target_hidden_cols_projecoes:
+        assert col_idx in covered_hidden_projecoes
+
     assert dividas_ws["E5"].number_format == "R$ #,##0.00"
     assert dividas_ws["F5"].number_format == "R$ #,##0.00"
     assert dividas_ws["J5"].number_format == "R$ #,##0.00"
@@ -1078,3 +1115,15 @@ def test_sample_mode_tables(tmp_path):
                 j_hidden = True
                 break
     assert j_hidden, "Column J in Cartões is not physically hidden"
+
+def test_phase14_custom_horizons(tmp_path):
+    output_dir = str(tmp_path)
+    req1 = GenerationRequest(template_id="finance_personal", year=2026, projection_horizon=1)
+    path1 = generate(req1, output_dir)
+    wb1 = openpyxl.load_workbook(path1)
+    assert wb1["Projeções"].tables["tblProjecoes"].ref == "B4:I5"
+    
+    req60 = GenerationRequest(template_id="finance_personal", year=2026, projection_horizon=60)
+    path60 = generate(req60, output_dir)
+    wb60 = openpyxl.load_workbook(path60)
+    assert wb60["Projeções"].tables["tblProjecoes"].ref == "B4:I64"
