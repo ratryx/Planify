@@ -599,27 +599,32 @@ def test_full_pipeline_light_and_dark(tmp_path):
     assert dash_pat_headers == ["Componente", "Valor atual", "Peso %"]
 
     assert dash_pat_ws["B2"].value == "Dashboard Patrimônio"
-    assert "Visão consolidada" in dash_pat_ws["B3"].value
+    assert dash_pat_ws["B3"].value == "Visão consolidada dos ativos atuais. Dívidas e outros passivos ainda não são descontados."
     assert dash_pat_ws["B4"].value == "Contas e caixa"
     assert dash_pat_ws["D4"].value == "Investimentos"
     assert dash_pat_ws["F4"].value == "Bens patrimoniais"
     assert dash_pat_ws["B7"].value == "Ativos totais"
-    assert "Contas representam caixa" in dash_pat_ws["B9"].value
+    assert dash_pat_ws["B9"].value == "Contas representam caixa; investimentos e bens devem ser cadastrados apenas em suas abas próprias para evitar dupla contagem."
 
     for col_row in ["B5", "D5", "F5", "B8"]:
         cell = dash_pat_ws[col_row]
         assert str(cell.value).startswith("=")
         assert cell.data_type == "f"
-        assert "R$" in cell.number_format or cell.number_format == "General"
+        assert cell.number_format == "R$ #,##0.00"
         
-    for row in range(12, 15):
-        assert not str(dash_pat_ws[f"B{row}"].value).startswith("=")
+    for row, expected_label in zip(range(12, 15), ["Contas e caixa", "Investimentos", "Bens patrimoniais"]):
+        cell_b = dash_pat_ws[f"B{row}"]
+        assert cell_b.value == expected_label
+        assert cell_b.data_type != "f"
+        assert cell_b.protection.locked is True
+        
         assert str(dash_pat_ws[f"C{row}"].value).startswith("=")
         assert dash_pat_ws[f"C{row}"].data_type == "f"
-        assert "R$" in dash_pat_ws[f"C{row}"].number_format or dash_pat_ws[f"C{row}"].number_format == "General"
+        assert dash_pat_ws[f"C{row}"].number_format == "R$ #,##0.00"
+        
         assert str(dash_pat_ws[f"D{row}"].value).startswith("=")
         assert dash_pat_ws[f"D{row}"].data_type == "f"
-        assert "0.0%" in dash_pat_ws[f"D{row}"].number_format or dash_pat_ws[f"D{row}"].number_format == "General"
+        assert dash_pat_ws[f"D{row}"].number_format == "0.0%"
 
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables

@@ -13,14 +13,7 @@ from excel_saas.templates.finance_personal.dashboard_patrimonio import build_das
 
 def test_account_assets():
     f = str(Formula(build_account_assets()))
-    assert 'tblContas[Saldo atual]' in f
-    assert 'tblContas[Status],"OK"' in f or 'tblContas[Status], "OK"' in f or 'tblContas[Status],""OK""' in f or 'tblContas[Status],"""OK"""' in f or 'tblContas[Status],"\"OK\""' in f or 'tblContas[Status],"""OK"""' in f or 'tblContas[Status],""OK""' not in f # wait, let's just check strings
-    assert 'tblContas[Status]' in f
-    assert '"OK"' in f
-    assert 'tblContas[Ativa?]' in f
-    assert '"Sim"' in f
-    assert '">0"' in f
-    
+    assert f == '=SUMIFS(tblContas[Saldo atual],tblContas[Status],"OK",tblContas[Ativa?],"Sim",tblContas[Saldo atual],">0")'
     assert 'Incluir no saldo disponível?' not in f
 
 def test_investment_assets():
@@ -46,19 +39,16 @@ def test_total_assets():
 
 def test_component_routing():
     f = str(Formula(build_component_value()))
-    assert '[@Componente]="Contas e caixa"' in f or '[@Componente]="""Contas e caixa"""' in f or '[@Componente]="\"Contas e caixa\""' in f or '[@Componente]="Contas e caixa"' not in f # check strings
-    assert '"Contas e caixa"' in f
-    assert '"Investimentos"' in f
-    assert '"Bens patrimoniais"' in f
+    assert f == '=IF([@Componente]="Contas e caixa",SUMIFS(tblContas[Saldo atual],tblContas[Status],"OK",tblContas[Ativa?],"Sim",tblContas[Saldo atual],">0"),IF([@Componente]="Investimentos",SUM(tblInvestimentos[sys_ValorAtualValido]),IF([@Componente]="Bens patrimoniais",SUM(tblBensPatrimoniais[sys_ValorAtualValido]),0)))'
     
-    assert 'IF(' in f
-    assert ',0)' in f or ', 0)' in f
+    assert '[@Componente]="Contas e caixa"' in f
+    assert '[@Componente]="Investimentos"' in f
+    assert '[@Componente]="Bens patrimoniais"' in f
 
 def test_component_weight():
     f = str(Formula(build_component_weight()))
-    assert 'IF(SUM(SUMIFS' in f
-    assert '=0,0,[@[Valor atual]]/SUM(SUMIFS' in f or '=0,0, [@[Valor atual]]/SUM(SUMIFS' in f or '=0, 0, [@[Valor atual]]/SUM(SUMIFS' in f or '=0, 0, [@[Valor atual]] / SUM(SUMIFS' not in f
-    assert '[@[Valor atual]]/' in f or '[@[Valor atual]] /' in f
+    assert f == '=IF(SUM(SUMIFS(tblContas[Saldo atual],tblContas[Status],"OK",tblContas[Ativa?],"Sim",tblContas[Saldo atual],">0"),SUM(tblInvestimentos[sys_ValorAtualValido]),SUM(tblBensPatrimoniais[sys_ValorAtualValido]))=0,0,[@[Valor atual]]/SUM(SUMIFS(tblContas[Saldo atual],tblContas[Status],"OK",tblContas[Ativa?],"Sim",tblContas[Saldo atual],">0"),SUM(tblInvestimentos[sys_ValorAtualValido]),SUM(tblBensPatrimoniais[sys_ValorAtualValido])))'
+    assert '[@[Valor atual]]/' in f
 
 def test_table_model():
     sheet = build_dashboard_patrimonio_sheet()
@@ -78,6 +68,10 @@ def test_table_model():
     assert table.columns[0].role == CellRole.NORMAL
     assert table.columns[1].role == CellRole.FORMULA
     assert table.columns[2].role == CellRole.FORMULA
+    
+    roles = [col.role for col in table.columns]
+    assert CellRole.INPUT not in roles
+    assert CellRole.SYSTEM not in roles
 
 def test_domain_boundary():
     f1 = str(Formula(build_account_assets()))
