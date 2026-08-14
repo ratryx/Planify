@@ -3,6 +3,7 @@ from excel_saas.core.excel.formulas import Formula
 from excel_saas.core.models.cell_roles import CellRole
 from excel_saas.templates.finance_personal.patrimonio_semantics import (
     CATEGORIAS_PATRIMONIO,
+    _build_is_valid_asset,
     build_sys_valor_atual_valido,
     build_status
 )
@@ -26,12 +27,12 @@ def test_duplicate_identity():
     assert 'COUNTIFS(tblBensPatrimoniais[Bem],[@Bem])>1' in f
     assert '"Bem duplicado"' in f
 
-def test_validity_predicate_and_helper():
-    f = str(Formula(build_sys_valor_atual_valido()))
+def test_validity_predicate():
+    f = str(Formula(_build_is_valid_asset()))
     
     # Must check required fields
     assert 'ISBLANK([@Bem])' in f
-    assert 'ISBLANK([@Categoria])' in f
+    assert 'ISBLANK([@Categoria])' not in f # it uses direct equality with categories
     assert 'ISBLANK([@[Valor atual]])' in f
     
     # Must check numeric and >= 0
@@ -40,9 +41,12 @@ def test_validity_predicate_and_helper():
     
     # Must NOT reference Status
     assert '[@Status]' not in f
+
+def test_sys_valor_atual_valido():
+    f = str(Formula(build_sys_valor_atual_valido()))
     
-    # Must evaluate to Valor atual or 0
-    assert 'IF(' in f
+    # Must evaluate to Valor atual or 0 using _build_is_valid_asset
+    assert 'IF(AND(NOT(ISBLANK([@Bem]))' in f
     assert '[@[Valor atual]]' in f
     assert ',0)' in f or ',0,0)' in f or ',0, 0)' in f
 

@@ -13,18 +13,10 @@ CATEGORIAS_PATRIMONIO = [
     "Outros"
 ]
 
-def build_sys_valor_atual_valido():
+def _build_is_valid_asset():
     bem = ThisRowRef("Bem")
     categoria = ThisRowRef("Categoria")
     valor_atual = ThisRowRef("Valor atual")
-    observacao = ThisRowRef("Observação")
-    
-    is_empty_row = and_func(
-        isblank(bem),
-        isblank(categoria),
-        isblank(valor_atual),
-        isblank(observacao)
-    )
     
     cat_checks = [equals(categoria, literal(cat)) for cat in CATEGORIAS_PATRIMONIO]
     is_valid_cat = or_func(*cat_checks)
@@ -37,21 +29,18 @@ def build_sys_valor_atual_valido():
         greater_or_equal(valor_atual, literal(0))
     )
     
-    direct_validity = and_func(
+    return and_func(
         not_func(isblank(bem)),
         is_valid_cat,
         is_unique_bem,
         is_valid_value
     )
-    
+
+def build_sys_valor_atual_valido():
     return if_func(
-        is_empty_row,
-        literal(0),
-        if_func(
-            direct_validity,
-            valor_atual,
-            literal(0)
-        )
+        _build_is_valid_asset(),
+        ThisRowRef("Valor atual"),
+        literal(0)
     )
 
 def build_status():
