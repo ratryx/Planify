@@ -1,7 +1,19 @@
 import sys
 import openpyxl
+from openpyxl.utils import range_boundaries
 
 KNOWN_ERRORS = {"#NULL!", "#DIV/0!", "#VALUE!", "#REF!", "#NAME?", "#NUM!", "#N/A"}
+
+def is_cell_in_table_data_row(cell_f, tables):
+    """Returns (is_in_table, table_min_col, table_max_col) for table data rows only."""
+    for tbl in tables.values():
+        min_col, min_row, max_col, max_row = range_boundaries(tbl.ref)
+        if min_row <= cell_f.row <= max_row and min_col <= cell_f.column <= max_col:
+            header_rows = tbl.headerRowCount if tbl.headerRowCount is not None else 1
+            totals_rows = tbl.totalsRowCount if tbl.totalsRowCount is not None else 0
+            if (min_row + header_rows) <= cell_f.row <= (max_row - totals_rows):
+                return True, min_col, max_col
+    return False, None, None
 
 def scan_workbook(filepath):
     print(f"Scanning {filepath} for Excel formula errors...")
@@ -18,28 +30,33 @@ def scan_workbook(filepath):
         ws_v = wb_values[sheet_name]
 
         for row in ws_f.iter_rows():
-            is_empty_data_row = True
-            for c in row:
-                if c.data_type != 'f' and not (isinstance(c.value, str) and c.value.startswith('=')):
-                    if c.value not in (None, ""):
-                        is_empty_data_row = False
-                        break
-
             for cell_f in row:
                 if cell_f.data_type == 'f' or (isinstance(cell_f.value, str) and cell_f.value.startswith('=')):
                     formulas_scanned += 1
                     cell_v = ws_v[cell_f.coordinate]
 
                     if isinstance(cell_v.value, str) and cell_v.value in KNOWN_ERRORS:
-                        if is_empty_data_row:
-                            continue
+                        ignore_error = False
+                        
+                        is_table, min_col, max_col = is_cell_in_table_data_row(cell_f, ws_f.tables)
+                        if is_table:
+                            is_empty_table_row = True
+                            for c in range(min_col, max_col + 1):
+                                tc = ws_f.cell(row=cell_f.row, column=c)
+                                if tc.data_type != 'f' and not (isinstance(tc.value, str) and tc.value.startswith('=')):
+                                    if tc.value not in (None, ""):
+                                        is_empty_table_row = False
+                                        break
+                            if is_empty_table_row:
+                                ignore_error = True
 
-                        errors_found.append({
-                            "sheet": sheet_name,
-                            "cell": cell_f.coordinate,
-                            "formula": cell_f.value,
-                            "result": cell_v.value
-                        })
+                        if not ignore_error:
+                            errors_found.append({
+                                "sheet": sheet_name,
+                                "cell": cell_f.coordinate,
+                                "formula": cell_f.value,
+                                "result": cell_v.value
+                            })
 
     if errors_found:
         print(f"\nFOUND {len(errors_found)} ERRORS in {filepath}:")

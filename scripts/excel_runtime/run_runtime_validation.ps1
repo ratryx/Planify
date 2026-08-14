@@ -40,6 +40,18 @@ foreach ($fixture in $fixtures) {
         $totalFormulas += [int]$matches[1]
         $totalErrors += [int]$matches[2]
     }
+    
+    # 4. Status Validation (Only for B and C)
+    if ($fixture -match "_runtime_[bc]\.xlsx$") {
+        Write-Host "`n4. Validating semantic status for $fixture..."
+        $statusOutput = python scripts/excel_runtime/validate_status.py $fixture 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host $statusOutput
+            Write-Error "Status validation failed in $fixture"
+            exit 1
+        }
+        Write-Host $statusOutput
+    }
 }
 
 Write-Host "`n============================================="
