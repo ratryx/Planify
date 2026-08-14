@@ -29,6 +29,7 @@ def test_full_pipeline_light_and_dark(tmp_path):
         "Investimentos",
         "Dashboard Investimentos",
         "Patrimônio",
+        "Dashboard Patrimônio",
         "Configurações"
     ]
 
@@ -586,6 +587,40 @@ def test_full_pipeline_light_and_dark(tmp_path):
     for col_idx in target_hidden_cols_patrimonio:
         assert col_idx in covered_hidden_pat
 
+    # Phase 12: Check Dashboard Patrimônio
+    dash_pat_ws = wb["Dashboard Patrimônio"]
+    assert dash_pat_ws.protection.sheet is True
+
+    assert "tblResumoPatrimonio" in dash_pat_ws.tables
+    table_dash_pat = dash_pat_ws.tables["tblResumoPatrimonio"]
+    assert table_dash_pat.ref == "B11:D14"
+
+    dash_pat_headers = [cell.value for cell in dash_pat_ws[11] if cell.value]
+    assert dash_pat_headers == ["Componente", "Valor atual", "Peso %"]
+
+    assert dash_pat_ws["B2"].value == "Dashboard Patrimônio"
+    assert "Visão consolidada" in dash_pat_ws["B3"].value
+    assert dash_pat_ws["B4"].value == "Contas e caixa"
+    assert dash_pat_ws["D4"].value == "Investimentos"
+    assert dash_pat_ws["F4"].value == "Bens patrimoniais"
+    assert dash_pat_ws["B7"].value == "Ativos totais"
+    assert "Contas representam caixa" in dash_pat_ws["B9"].value
+
+    for col_row in ["B5", "D5", "F5", "B8"]:
+        cell = dash_pat_ws[col_row]
+        assert str(cell.value).startswith("=")
+        assert cell.data_type == "f"
+        assert "R$" in cell.number_format or cell.number_format == "General"
+        
+    for row in range(12, 15):
+        assert not str(dash_pat_ws[f"B{row}"].value).startswith("=")
+        assert str(dash_pat_ws[f"C{row}"].value).startswith("=")
+        assert dash_pat_ws[f"C{row}"].data_type == "f"
+        assert "R$" in dash_pat_ws[f"C{row}"].number_format or dash_pat_ws[f"C{row}"].number_format == "General"
+        assert str(dash_pat_ws[f"D{row}"].value).startswith("=")
+        assert dash_pat_ws[f"D{row}"].data_type == "f"
+        assert "0.0%" in dash_pat_ws[f"D{row}"].number_format or dash_pat_ws[f"D{row}"].number_format == "General"
+
     config_ws = wb["Configurações"]
     assert "tblCategorias" in config_ws.tables
     assert "tblTiposConta" in config_ws.tables
@@ -804,6 +839,13 @@ def test_full_pipeline_light_and_dark(tmp_path):
             for idx in range(col_dim.min, col_dim.max + 1):
                 covered_hidden_pat_dark.add(idx)
     assert column_index_from_string("G") in covered_hidden_pat_dark
+
+    # Phase 12: Dark structural regression check for Dashboard Patrimônio
+    assert "Dashboard Patrimônio" in wb_dark.sheetnames
+    ws_dash_pat_dark = wb_dark["Dashboard Patrimônio"]
+    assert "tblResumoPatrimonio" in ws_dash_pat_dark.tables
+    assert ws_dash_pat_dark.tables["tblResumoPatrimonio"].ref == "B11:D14"
+    assert ws_dash_pat_dark.protection.sheet is True
 
 def test_literal_string_starts_with_equal(tmp_path):
     from excel_saas.core.models.workbook_plan import WorkbookPlan, WorksheetPlan, CellPlan
