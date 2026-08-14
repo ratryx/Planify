@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+        
+      - name: Install package with dev dependencies
+        run: pip install -e ".[dev]"
+        
+      - name: Run pytest
+        run: pytest
+        
+      - name: Build package
+        run: python -m build
+        
+      - name: Verify build output
+        run: |
+          ls -la dist/
+          [ $(ls dist/*.whl | wc -l) -eq 1 ] || exit 1
+          [ $(ls dist/*.tar.gz | wc -l) -eq 1 ] || exit 1
+          
+      - name: Wheel Isolation Smoke Test
+        run: |
+          python -m venv .wheel-venv
+          .wheel-venv/bin/python -m pip install --upgrade pip
+          .wheel-venv/bin/pip install dist/*.whl
+          .wheel-venv/bin/python scripts/verify_installed_package.py
